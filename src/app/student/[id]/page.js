@@ -1,0 +1,197 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+
+export default function StudentPOVPage() {
+  const { id } = useParams();
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/queue/${id}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setStatus(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    fetchStatus();
+
+    // Subscribe to real-time updates for queue_configs and queue_entries
+    const configChannel = supabase
+      .channel('student-queue-config')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_configs' }, () => {
+        fetchStatus();
+      })
+      .subscribe();
+
+    const entryChannel = supabase
+      .channel('student-queue-entries')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_entries' }, () => {
+        fetchStatus();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(configChannel);
+      supabase.removeChannel(entryChannel);
+    };
+  }, [fetchStatus]);
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Loading your queue status...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container" style={{ marginTop: '32px' }}>
+        <div className="alert alert-danger">{error}</div>
+      </div>
+    );
+  }
+
+  const { entry, position, aheadCount, currentServing, isQueueActive } = status;
+  const schedule = entry.enrollment_schedules;
+  const course = entry.courses;
+
+  const formatTime = (time) => {
+    if (!time) return '';
+    const [h, m] = time.split(':');
+    const hour = parseInt(h);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+    return `${displayHour}:${m} ${ampm}`;
+  };
+
+  const yearSuffix = (y) => ['', '1st', '2nd', '3rd', '4th'][y] || `${y}th`;
+  const typeLabel = entry.enrollment_type === 'block_section' ? 'Block Section' : 'Irregular / Free Select';
+
+  const isCurrentlyServing = entry.status === 'serving';
+  const isCompleted = entry.status === 'completed';
+  const isSkipped = entry.status === 'skipped';
+
+  return (
+    <>
+      <section className="page-header">
+        <div className="container">
+          <h1>📋 Your Queue Status</h1>
+          <p>
+            {course?.code} — {yearSuffix(entry.year_level)} Year — {typeLabel}
+          </p>
+        </div>
+      </section>
+
+      <div className="container" style={{ maxWidth: '600px' }}>
+        {/* Queue Number Card */}
+        <div className="card" style={{ marginBottom: '24px' }}>
+          <div className="queue-number-display">
+            <span className="queue-number-label">Your Queue Number</span>
+            <span className="queue-number-big">{entry.queue_number}</span>
+            <span style={{ color: '#6b7280', marginTop: '4px' }}>{entry.student_name}</span>
+          </div>
+        </div>
+
+        {/* Status Card */}
+        <div className="card" style={{ marginBottom: '24px' }}>
+          {isCompleted && (
+            <div className="alert alert-success" style={{ textAlign: 'center' }}>
+              ✅ <strong>Your enrollment has been processed!</strong>
+            </div>
+          )}
+
+          {isSkipped && (
+            <div className="alert alert-warning" style={{ textAlign: 'center' }}>
+              ⏭️ <strong>You have been skipped.</strong> Please proceed to the registrar for assistance.
+            </div>
+          )}
+
+          {isCurrentlyServing && (
+            <div className="alert alert-success" style={{ textAlign: 'center', fontSize: '1.125rem' }}>
+              🔔 <strong>It's your turn! Please proceed to the registrar now.</strong>
+            </div>
+          )}
+
+          {entry.status === 'waiting' && (
+            <>
+              {isQueueActive && schedule?.is_active ? (
+                <div className="alert alert-info" style={{ textAlign: 'center' }}>
+                  <span className="pulse-dot" style={{ marginRight: '8px' }}></span>
+                  <strong>Your year level is currently enrolling!</strong>
+                </div>
+              ) : (
+                <div className="alert alert-warning" style={{ textAlign: 'center' }}>
+                  ⏳ Your queue will start at{' '}
+                  <strong>{formatTime(schedule?.start_time)}</strong> on{' '}
+                  <strong>{schedule?.schedule_date}</strong>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Position Info */}
+        {entry.status === 'waiting' && (
+          <div className="grid grid-3" style={{ marginBottom: '24px' }}>
+            <div className="card stat-card">
+              <div className="stat-value">{currentServing || '—'}</div>
+              <div className="stat-label">Now Serving</div>
+            </div>
+            <div className="card stat-card">
+              <div className="stat-value">{entry.queue_number}</div>
+              <div className="stat-label">Your Number</div>
+            </div>
+            <div className="card stat-card">
+              <div className="stat-value">{aheadCount}</div>
+              <div className="stat-label">Ahead of You</div>
+            </div>
+          </div>
+        )}
+
+        {/* Details */}
+        <div className="card">
+          <h3 className="card-title" style={{ marginBottom: '16px' }}>Details</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.9375rem' }}>
+            <div>
+              <span style={{ color: '#6b7280', fontWeight: 600, fontSize: '0.8125rem' }}>Student ID</span>
+              <p style={{ fontWeight: 600 }}>{entry.student_id}</p>
+            </div>
+            <div>
+              <span style={{ color: '#6b7280', fontWeight: 600, fontSize: '0.8125rem' }}>Course</span>
+              <p style={{ fontWeight: 600 }}>{course?.code}</p>
+            </div>
+            <div>
+              <span style={{ color: '#6b7280', fontWeight: 600, fontSize: '0.8125rem' }}>Year Level</span>
+              <p style={{ fontWeight: 600 }}>{yearSuffix(entry.year_level)} Year</p>
+            </div>
+            <div>
+              <span style={{ color: '#6b7280', fontWeight: 600, fontSize: '0.8125rem' }}>Type</span>
+              <p style={{ fontWeight: 600 }}>{typeLabel}</p>
+            </div>
+            <div>
+              <span style={{ color: '#6b7280', fontWeight: 600, fontSize: '0.8125rem' }}>Status</span>
+              <p><span className={`badge badge-${entry.status}`}>{entry.status}</span></p>
+            </div>
+            <div>
+              <span style={{ color: '#6b7280', fontWeight: 600, fontSize: '0.8125rem' }}>Schedule</span>
+              <p style={{ fontWeight: 600 }}>{schedule?.schedule_date}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
