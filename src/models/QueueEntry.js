@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase, getServiceSupabase } from '@/lib/supabase';
 
 const QueueEntry = {
   async create({ schedule_id, course_id, year_level, enrollment_type, student_name, student_id }) {
@@ -17,7 +17,7 @@ const QueueEntry = {
 
     const nextNumber = (maxEntry?.queue_number || 0) + 1;
 
-    const { data, error } = await supabase
+    const { data, error } = await getServiceSupabase()
       .from('queue_entries')
       .insert({
         schedule_id,
@@ -63,7 +63,7 @@ const QueueEntry = {
   },
 
   async updateStatus(id, status) {
-    const { data, error } = await supabase
+    const { data, error } = await getServiceSupabase()
       .from('queue_entries')
       .update({ status })
       .eq('id', id)

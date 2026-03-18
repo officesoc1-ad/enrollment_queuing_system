@@ -39,9 +39,10 @@ export default function RegisterPage() {
     fetchData();
   }, []);
 
-  // Find matching schedule based on selected year_level and enrollment_type
+  // Find matching schedule based on selected course_id, year_level and enrollment_type
   const matchingSchedule = schedules.find(
-    s => s.year_level === parseInt(form.year_level) &&
+    s => s.course_id === form.course_id &&
+         s.year_level === parseInt(form.year_level) &&
          s.enrollment_type === form.enrollment_type &&
          s.is_active
   );
@@ -66,7 +67,8 @@ export default function RegisterPage() {
 
     // Find any schedule (active or not) for this enrollment type + year level
     const schedule = schedules.find(
-      s => s.year_level === parseInt(form.year_level) &&
+      s => s.course_id === form.course_id &&
+           s.year_level === parseInt(form.year_level) &&
            s.enrollment_type === form.enrollment_type
     );
 

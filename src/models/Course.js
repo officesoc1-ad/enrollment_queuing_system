@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase, getServiceSupabase } from '@/lib/supabase';
 
 const Course = {
   async getAll() {
@@ -11,7 +11,7 @@ const Course = {
   },
 
   async create(code, name) {
-    const { data, error } = await supabase
+    const { data, error } = await getServiceSupabase()
       .from('courses')
       .insert({ code, name })
       .select()
@@ -21,7 +21,7 @@ const Course = {
   },
 
   async delete(id) {
-    const { error } = await supabase
+    const { error } = await getServiceSupabase()
       .from('courses')
       .delete()
       .eq('id', id);

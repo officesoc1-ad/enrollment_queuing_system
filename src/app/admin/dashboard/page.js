@@ -24,6 +24,7 @@ export default function AdminDashboardPage() {
 
   // Form states
   const [scheduleForm, setScheduleForm] = useState({
+    course_id: '',
     enrollment_type: 'block_section',
     year_level: '1',
     schedule_date: '',
@@ -179,7 +180,7 @@ export default function AdminDashboardPage() {
       setShowScheduleModal(false);
       setEditingSchedule(null);
       setScheduleForm({
-        enrollment_type: 'block_section', year_level: '1',
+        course_id: '', enrollment_type: 'block_section', year_level: '1',
         schedule_date: '', start_time: '', end_time: ''
       });
       fetchAll();
@@ -227,6 +228,7 @@ export default function AdminDashboardPage() {
   const openEditSchedule = (schedule) => {
     setEditingSchedule(schedule);
     setScheduleForm({
+      course_id: schedule.course_id,
       enrollment_type: schedule.enrollment_type,
       year_level: String(schedule.year_level),
       schedule_date: schedule.schedule_date,
@@ -487,7 +489,7 @@ export default function AdminDashboardPage() {
               <button className="btn btn-primary" onClick={() => {
                 setEditingSchedule(null);
                 setScheduleForm({
-                  enrollment_type: 'block_section', year_level: '1',
+                  course_id: '', enrollment_type: 'block_section', year_level: '1',
                   schedule_date: '', start_time: '', end_time: ''
                 });
                 setShowScheduleModal(true);
@@ -499,6 +501,7 @@ export default function AdminDashboardPage() {
               <table className="table">
                 <thead>
                   <tr>
+                    <th>Course</th>
                     <th>Type</th>
                     <th>Year Level</th>
                     <th>Date</th>
@@ -510,13 +513,14 @@ export default function AdminDashboardPage() {
                 <tbody>
                   {schedules.length === 0 ? (
                     <tr>
-                      <td colSpan="6" style={{ textAlign: 'center', color: '#9ca3af', padding: '24px' }}>
+                      <td colSpan="7" style={{ textAlign: 'center', color: '#9ca3af', padding: '24px' }}>
                         No schedules created yet
                       </td>
                     </tr>
                   ) : (
                     schedules.map(s => (
                       <tr key={s.id}>
+                        <td>{s.courses?.code || '—'}</td>
                         <td>{typeLabel(s.enrollment_type)}</td>
                         <td>{yearSuffix(s.year_level)} Year</td>
                         <td>{s.schedule_date}</td>
@@ -606,6 +610,20 @@ export default function AdminDashboardPage() {
               {editingSchedule ? 'Edit Schedule' : 'Add Schedule'}
             </h2>
             <form onSubmit={handleSaveSchedule}>
+              <div className="form-group">
+                <label className="form-label">Course / Program</label>
+                <select
+                  className="form-select"
+                  value={scheduleForm.course_id}
+                  onChange={e => setScheduleForm(f => ({ ...f, course_id: e.target.value }))}
+                  required
+                >
+                  <option value="">Select a course</option>
+                  {courses.map(c => (
+                    <option key={c.id} value={c.id}>{c.code} — {c.name}</option>
+                  ))}
+                </select>
+              </div>
               <div className="form-group">
                 <label className="form-label">Enrollment Type</label>
                 <select

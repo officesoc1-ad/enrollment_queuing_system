@@ -17,9 +17,9 @@ export async function GET() {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { enrollment_type, year_level, schedule_date, start_time, end_time } = body;
+    const { course_id, enrollment_type, year_level, schedule_date, start_time, end_time } = body;
 
-    if (!enrollment_type || !year_level || !schedule_date || !start_time || !end_time) {
+    if (!course_id || !enrollment_type || !year_level || !schedule_date || !start_time || !end_time) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
     }
 

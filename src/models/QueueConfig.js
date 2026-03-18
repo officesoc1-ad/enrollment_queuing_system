@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase, getServiceSupabase } from '@/lib/supabase';
 
 const QueueConfig = {
   async getOrCreate(schedule_id, course_id, year_level, enrollment_type) {
@@ -15,7 +15,7 @@ const QueueConfig = {
     if (existing) return existing;
 
     // Create new config
-    const { data, error } = await supabase
+    const { data, error } = await getServiceSupabase()
       .from('queue_configs')
       .insert({ schedule_id, course_id, year_level, enrollment_type, current_serving: 0, is_active: false })
       .select()
@@ -80,7 +80,7 @@ const QueueConfig = {
   },
 
   async updateCurrentServing(id, number) {
-    const { data, error } = await supabase
+    const { data, error } = await getServiceSupabase()
       .from('queue_configs')
       .update({ current_serving: number })
       .eq('id', id)
@@ -91,7 +91,7 @@ const QueueConfig = {
   },
 
   async toggleActive(id, is_active) {
-    const { data, error } = await supabase
+    const { data, error } = await getServiceSupabase()
       .from('queue_configs')
       .update({ is_active })
       .eq('id', id)
