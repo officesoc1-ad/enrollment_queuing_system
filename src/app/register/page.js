@@ -144,6 +144,7 @@ export default function RegisterPage() {
                 placeholder="e.g. Juan Dela Cruz"
                 value={form.student_name}
                 onChange={handleChange}
+                required
               />
             </div>
 
@@ -156,6 +157,7 @@ export default function RegisterPage() {
                 placeholder="e.g. 2024-00001"
                 value={form.student_id}
                 onChange={handleChange}
+                required
               />
             </div>
 
@@ -166,6 +168,7 @@ export default function RegisterPage() {
                 className="form-select"
                 value={form.course_id}
                 onChange={handleChange}
+                required
               >
                 <option value="">Select your course</option>
                 {courses.map(c => (
@@ -181,6 +184,7 @@ export default function RegisterPage() {
                 className="form-select"
                 value={form.year_level}
                 onChange={handleChange}
+                required
               >
                 <option value="">Select year level</option>
                 <option value="1">1st Year</option>
