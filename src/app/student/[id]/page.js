@@ -88,7 +88,9 @@ export default function StudentPOVPage() {
     <>
       <section className="page-header">
         <div className="container">
-          <h1>📋 Your Queue Status</h1>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <img src="/soc2.jpg" alt="SOC Logo" style={{ height: '36px', width: 'auto' }} /> Your Queue Status
+          </h1>
           <p>
             {course?.code} — {yearSuffix(entry.year_level)} Year — {typeLabel}
           </p>

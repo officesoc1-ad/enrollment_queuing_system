@@ -1,12 +1,17 @@
 import Link from 'next/link';
+import InteractiveParticles from '@/components/InteractiveParticles';
 
 export default function HomePage() {
   return (
     <>
-      <section className="page-header" style={{ padding: '80px 0', textAlign: 'center' }}>
-        <div className="container">
+      <section className="page-header" style={{ padding: '80px 0', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <InteractiveParticles />
+        <div className="container" style={{ position: 'relative', zIndex: 1, pointerEvents: 'none' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
+            <img src="/soc2.jpg" alt="SOC Logo" style={{ height: '120px', width: 'auto' }} />
+          </div>
           <h1 style={{ fontSize: '2.5rem', marginBottom: '8px' }}>
-            🎓 HAU Enrollment Queuing System
+            <span><span style={{ WebkitTextFillColor: 'var(--gold-600)', color: 'var(--gold-600)' }}>HAU</span> Enrollment Queuing System</span>
           </h1>
           <p style={{ fontSize: '1.125rem', maxWidth: '600px', margin: '0 auto' }}>
             Holy Angel University — School of Computing<br />
@@ -15,7 +20,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="container" style={{ marginTop: '-40px' }}>
+      <div className="container" style={{ marginTop: '40px' }}>
         <div className="grid grid-3" style={{ maxWidth: '900px', margin: '0 auto' }}>
           <Link href="/register" style={{ textDecoration: 'none' }}>
             <div className="card" style={{ textAlign: 'center', cursor: 'pointer', height: '100%' }}>

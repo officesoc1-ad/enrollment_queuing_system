@@ -276,7 +276,7 @@ export default function AdminDashboardPage() {
         alignItems: 'center',
         justifyContent: 'space-between'
       }}>
-        <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ea580c' }}>
+        <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary-800)' }}>
           ⚙️ Admin Dashboard
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -348,8 +348,8 @@ export default function AdminDashboardPage() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          background: selectedQueue?.id === q.id ? '#fff7ed' : 'transparent',
-                          borderLeft: selectedQueue?.id === q.id ? '3px solid #f97316' : '3px solid transparent',
+                          background: selectedQueue?.id === q.id ? 'var(--primary-50)' : 'transparent',
+                          borderLeft: selectedQueue?.id === q.id ? '3px solid var(--gold-500)' : '3px solid transparent',
                           transition: 'all 150ms ease'
                         }}
                       >

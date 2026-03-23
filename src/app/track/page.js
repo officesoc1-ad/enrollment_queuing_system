@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import InteractiveParticles from '@/components/InteractiveParticles';
 
 export default function TrackPage() {
   const router = useRouter();
@@ -37,14 +38,15 @@ export default function TrackPage() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f3f4f6' }}>
-      <section className="page-header" style={{ padding: '48px 0', background: 'linear-gradient(135deg, #ea580c 0%, #b91c1c 100%)', color: 'white', textAlign: 'center' }}>
-        <div className="container">
+      <section className="page-header" style={{ padding: '48px 0', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <InteractiveParticles />
+        <div className="container" style={{ position: 'relative', zIndex: 1, pointerEvents: 'none' }}>
           <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '16px' }}>🔍 Find Your Queue</h1>
           <p style={{ fontSize: '1.125rem', opacity: 0.9 }}>Enter your Student ID to check your queue status</p>
         </div>
       </section>
 
-      <div className="container" style={{ maxWidth: '500px', flex: 1, marginTop: '-32px' }}>
+      <div className="container" style={{ maxWidth: '500px', flex: 1, marginTop: '32px' }}>
         <div className="card" style={{ padding: '32px' }}>
           {error && <div className="alert alert-danger" style={{ marginBottom: '24px' }}>{error}</div>}
 
@@ -72,7 +74,7 @@ export default function TrackPage() {
           </form>
 
           <div style={{ marginTop: '24px', textAlign: 'center' }}>
-            <Link href="/" style={{ color: '#ea580c', textDecoration: 'none', fontWeight: 600 }}>
+            <Link href="/" style={{ color: 'var(--primary-800)', textDecoration: 'none', fontWeight: 600 }}>
               ← Back to Home
             </Link>
           </div>
