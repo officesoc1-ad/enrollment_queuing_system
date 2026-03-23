@@ -614,7 +614,7 @@ export default function AdminDashboardPage() {
                 <label className="form-label">Course / Program</label>
                 <select
                   className="form-select"
-                  value={scheduleForm.course_id}
+                  value={scheduleForm.course_id || ''}
                   onChange={e => setScheduleForm(f => ({ ...f, course_id: e.target.value }))}
                   required
                 >
@@ -628,8 +628,9 @@ export default function AdminDashboardPage() {
                 <label className="form-label">Enrollment Type</label>
                 <select
                   className="form-select"
-                  value={scheduleForm.enrollment_type}
+                  value={scheduleForm.enrollment_type || ''}
                   onChange={e => setScheduleForm(f => ({ ...f, enrollment_type: e.target.value }))}
+                  required
                 >
                   <option value="block_section">Block Section</option>
                   <option value="irregular">Irregular / Free Select</option>
@@ -639,8 +640,9 @@ export default function AdminDashboardPage() {
                 <label className="form-label">Year Level</label>
                 <select
                   className="form-select"
-                  value={scheduleForm.year_level}
+                  value={scheduleForm.year_level || ''}
                   onChange={e => setScheduleForm(f => ({ ...f, year_level: e.target.value }))}
+                  required
                 >
                   <option value="1">1st Year</option>
                   <option value="2">2nd Year</option>

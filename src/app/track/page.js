@@ -59,6 +59,7 @@ export default function TrackPage() {
                 placeholder="e.g. 2024-00001"
                 value={studentId}
                 onChange={e => setStudentId(e.target.value)}
+                autoComplete="off"
                 autoFocus
               />
             </div>
