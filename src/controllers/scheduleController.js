@@ -1,8 +1,15 @@
 import Schedule from '@/models/Schedule';
+import QueueConfig from '@/models/QueueConfig';
 
 const scheduleController = {
-  async createSchedule({ enrollment_type, year_level, schedule_date, start_time, end_time }) {
-    return await Schedule.create({ enrollment_type, year_level, schedule_date, start_time, end_time });
+  async createSchedule({ course_id, enrollment_type, year_level, schedule_date, start_time, end_time }) {
+    const schedule = await Schedule.create({ course_id, enrollment_type, year_level, schedule_date, start_time, end_time });
+    
+    // Automatically initialize an empty queue configuration for this schedule
+    // so that the admin can manage the queue (e.g. toggle active) before any students join
+    await QueueConfig.getOrCreate(schedule.id, course_id, year_level, enrollment_type);
+    
+    return schedule;
   },
 
   async updateSchedule(id, updates) {

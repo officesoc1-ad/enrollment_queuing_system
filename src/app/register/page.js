@@ -73,7 +73,10 @@ export default function RegisterPage() {
     );
 
     if (!schedule) {
-      setError('No schedule found for your year level and enrollment type. Please check with the registrar.');
+      setError('No active schedule found for your selection.');
+      setTimeout(() => {
+        setError('');
+      }, 5000);
       return;
     }
 
@@ -144,6 +147,7 @@ export default function RegisterPage() {
                 placeholder="e.g. Juan Dela Cruz"
                 value={form.student_name}
                 onChange={handleChange}
+                autoComplete="off"
                 required
               />
             </div>
@@ -157,6 +161,7 @@ export default function RegisterPage() {
                 placeholder="e.g. 2024-00001"
                 value={form.student_id}
                 onChange={handleChange}
+                autoComplete="off"
                 required
               />
             </div>
@@ -224,22 +229,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Show schedule info if a matching schedule exists */}
-            {form.year_level && (
-              <div style={{ marginBottom: '16px' }}>
-                {matchingSchedule ? (
-                  <div className="alert alert-success">
-                    ✅ Your schedule: <strong>{matchingSchedule.schedule_date}</strong> from{' '}
-                    <strong>{formatTime(matchingSchedule.start_time)}</strong> to{' '}
-                    <strong>{formatTime(matchingSchedule.end_time)}</strong>
-                  </div>
-                ) : (
-                  <div className="alert alert-warning">
-                    ⏳ No active schedule found for your selection. You can still register and your queue will start when your schedule is activated.
-                  </div>
-                )}
-              </div>
-            )}
+
 
             <button
               type="submit"

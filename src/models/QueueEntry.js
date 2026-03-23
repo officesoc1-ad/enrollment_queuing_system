@@ -131,12 +131,8 @@ const QueueEntry = {
   async findByStudentId(student_id) {
     const { data, error } = await supabase
       .from('queue_entries')
-      .select(`
-        *,
-        enrollment_schedules!inner(is_active)
-      `)
+      .select('*')
       .eq('student_id', student_id)
-      .eq('enrollment_schedules.is_active', true)
       .in('status', ['waiting', 'serving'])
       .order('created_at', { ascending: false })
       .limit(1)
