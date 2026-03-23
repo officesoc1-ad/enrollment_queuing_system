@@ -18,13 +18,25 @@ export default function HomePage() {
       <div className="container" style={{ marginTop: '-40px' }}>
         <div className="grid grid-3" style={{ maxWidth: '900px', margin: '0 auto' }}>
           <Link href="/register" style={{ textDecoration: 'none' }}>
-            <div className="card" style={{ textAlign: 'center', cursor: 'pointer' }}>
+            <div className="card" style={{ textAlign: 'center', cursor: 'pointer', height: '100%' }}>
               <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📝</div>
               <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>
                 Register
               </h2>
               <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
                 Enter the enrollment queue
+              </p>
+            </div>
+          </Link>
+
+          <Link href="/track" style={{ textDecoration: 'none' }}>
+            <div className="card" style={{ textAlign: 'center', cursor: 'pointer', height: '100%' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🔍</div>
+              <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>
+                Find Queue
+              </h2>
+              <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                Track your real-time status
               </p>
             </div>
           </Link>
