@@ -126,10 +126,13 @@ export default function RegisterPage() {
 
   return (
     <>
-      <section className="page-header">
-        <div className="container">
-          <h1>📝 Queue Registration</h1>
-          <p>Enter your details to join the enrollment queue</p>
+      <section className="page-header" style={{ textAlign: 'center' }}>
+        <div className="container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', margin: 0, paddingBottom: '8px' }}>
+            <img src="/register-icon.svg" alt="Register Icon" style={{ height: '40px', width: 'auto' }} />
+            Queue Registration
+          </h1>
+          <p style={{ margin: 0 }}>Enter your details to join the enrollment queue</p>
         </div>
       </section>
 

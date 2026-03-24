@@ -42,7 +42,9 @@ export default function AdminLoginPage() {
     }}>
       <div className="card" style={{ maxWidth: '400px', width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🔐</div>
+          <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'center' }}>
+            <img src="/admin-icon.svg" alt="Admin Icon" style={{ height: '48px', width: 'auto' }} />
+          </div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#111827' }}>Admin Login</h1>
           <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Sign in to manage enrollment queues</p>
         </div>

@@ -65,10 +65,13 @@ export default function QueueBoardPage() {
 
   return (
     <>
-      <section className="page-header">
-        <div className="container">
-          <h1>📊 Queue Board</h1>
-          <p>Live enrollment queue status — all courses</p>
+      <section className="page-header" style={{ textAlign: 'center' }}>
+        <div className="container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', margin: 0, paddingBottom: '8px' }}>
+            <img src="/queueboard-icon.svg" alt="Queue Board Icon" style={{ height: '40px', width: 'auto' }} />
+            Queue Board
+          </h1>
+          <p style={{ margin: 0 }}>Live enrollment queue status — all courses</p>
         </div>
       </section>
 
