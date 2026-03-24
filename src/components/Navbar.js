@@ -13,7 +13,7 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="navbar-inner">
         <Link href="/" className="navbar-brand">
-          <img src="/soc2.jpg" alt="SOC Logo" style={{ height: '60px', width: 'auto', margin: '-14px 8px -14px 0' }} />
+          <img src="/soc2.png" alt="SOC Logo" className="navbar-logo" />
           <span>HAU</span> Enrollment Queue
         </Link>
         <ul className="navbar-links">

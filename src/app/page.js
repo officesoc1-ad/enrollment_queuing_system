@@ -8,7 +8,7 @@ export default function HomePage() {
         <InteractiveParticles />
         <div className="container" style={{ position: 'relative', zIndex: 1, pointerEvents: 'none' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
-            <img src="/soc2.jpg" alt="SOC Logo" style={{ height: '120px', width: 'auto' }} />
+            <img src="/soc2.png" alt="SOC Logo" style={{ height: '120px', width: 'auto' }} />
           </div>
           <h1 style={{ fontSize: '2.5rem', marginBottom: '8px' }}>
             <span><span style={{ WebkitTextFillColor: 'var(--gold-600)', color: 'var(--gold-600)' }}>HAU</span> Enrollment Queuing System</span>
@@ -24,7 +24,7 @@ export default function HomePage() {
         <div className="grid grid-3" style={{ maxWidth: '900px', margin: '0 auto' }}>
           <Link href="/register" style={{ textDecoration: 'none' }}>
             <div className="card" style={{ textAlign: 'center', cursor: 'pointer', height: '100%' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📝</div>
+              <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '56px' }}><img src="/register-icon.svg" alt="Register Icon" style={{ height: '48px', width: 'auto' }} /></div>
               <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>
                 Register
               </h2>
@@ -36,7 +36,7 @@ export default function HomePage() {
 
           <Link href="/track" style={{ textDecoration: 'none' }}>
             <div className="card" style={{ textAlign: 'center', cursor: 'pointer', height: '100%' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🔍</div>
+              <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '56px' }}><img src="/findqueue-icon.svg" alt="Find Queue Icon" style={{ height: '48px', width: 'auto' }} /></div>
               <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>
                 Find Queue
               </h2>
@@ -48,7 +48,7 @@ export default function HomePage() {
 
           <Link href="/queue" style={{ textDecoration: 'none' }}>
             <div className="card" style={{ textAlign: 'center', cursor: 'pointer' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📊</div>
+              <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '56px' }}><img src="/queueboard-icon.svg" alt="Queue Board Icon" style={{ height: '48px', width: 'auto' }} /></div>
               <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>
                 Queue Board
               </h2>
@@ -60,7 +60,7 @@ export default function HomePage() {
 
           <Link href="/admin" style={{ textDecoration: 'none' }}>
             <div className="card" style={{ textAlign: 'center', cursor: 'pointer' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>⚙️</div>
+              <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '56px' }}><img src="/admin-icon.svg" alt="Admin Icon" style={{ height: '48px', width: 'auto' }} /></div>
               <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>
                 Admin
               </h2>

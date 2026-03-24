@@ -473,8 +473,28 @@ a:hover {
     flex-direction: column;
   }
 
+  .page-header {
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-800));
+    padding: var(--space-2xl) var(--space-md);
+    border-bottom: none;
+  }
+
+  .page-header::before,
+  .page-header::after {
+    display: none;
+  }
+
   .page-header h1 {
-    font-size: 1.5rem;
+    font-size: 1.7rem;
+    margin-bottom: var(--space-sm);
+    background: none;
+    -webkit-text-fill-color: white;
+    color: white;
+  }
+
+  .page-header p {
+    color: white;
+    opacity: 0.95;
   }
 }
 
@@ -612,6 +632,42 @@ a:hover {
 .navbar-links a:hover,
 .navbar-links a.active {
   color: var(--primary-600);
+}
+
+.navbar-logo {
+  height: 60px;
+  width: auto;
+  margin: 0 12px 0 0;
+}
+
+@media (max-width: 768px) {
+  .navbar-inner {
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+  }
+  
+  .navbar-logo {
+    height: 44px;
+    margin: 0 8px 0 0;
+  }
+  
+  .navbar-brand {
+    font-size: 1.1rem;
+    text-align: center;
+  }
+  
+  .navbar-links {
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    margin-top: var(--space-xs);
+  }
+  
+  .navbar-links a {
+    font-size: 0.875rem;
+  }
 }
 
 /* Tabs */
