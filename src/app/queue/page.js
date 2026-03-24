@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import InteractiveParticles from '@/components/InteractiveParticles';
 
 export default function QueueBoardPage() {
   const [queues, setQueues] = useState([]);
@@ -65,8 +66,9 @@ export default function QueueBoardPage() {
 
   return (
     <>
-      <section className="page-header" style={{ textAlign: 'center' }}>
-        <div className="container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <section className="page-header" style={{ textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <InteractiveParticles />
+        <div className="container" style={{ position: 'relative', zIndex: 1, pointerEvents: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', margin: 0, paddingBottom: '8px' }}>
             <img src="/queueboard-icon.svg" alt="Queue Board Icon" style={{ height: '40px', width: 'auto' }} />
             Queue Board

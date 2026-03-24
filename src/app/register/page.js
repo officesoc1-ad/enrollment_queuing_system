@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import InteractiveParticles from '@/components/InteractiveParticles';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -126,8 +127,9 @@ export default function RegisterPage() {
 
   return (
     <>
-      <section className="page-header" style={{ textAlign: 'center' }}>
-        <div className="container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <section className="page-header" style={{ textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <InteractiveParticles />
+        <div className="container" style={{ position: 'relative', zIndex: 1, pointerEvents: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', margin: 0, paddingBottom: '8px' }}>
             <img src="/register-icon.svg" alt="Register Icon" style={{ height: '40px', width: 'auto' }} />
             Queue Registration
