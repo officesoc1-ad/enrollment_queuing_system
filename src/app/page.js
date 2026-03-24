@@ -11,7 +11,7 @@ export default function HomePage() {
             <img src="/soc2.png" alt="SOC Logo" style={{ height: '120px', width: 'auto' }} />
           </div>
           <h1 style={{ fontSize: '2.5rem', marginBottom: '8px' }}>
-            <span><span style={{ WebkitTextFillColor: 'var(--gold-600)', color: 'var(--gold-600)' }}>HAU</span> Enrollment Queuing System</span>
+            <span><span className="hau-text">HAU</span> Enrollment Queuing System</span>
           </h1>
           <p style={{ fontSize: '1.125rem', maxWidth: '600px', margin: '0 auto' }}>
             Holy Angel University — School of Computing<br />

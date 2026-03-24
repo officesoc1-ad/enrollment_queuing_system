@@ -445,6 +445,11 @@ a:hover {
   z-index: 2;
 }
 
+.hau-text {
+  -webkit-text-fill-color: var(--gold-600);
+  color: var(--gold-600);
+}
+
 .page-header p {
   margin-top: var(--space-sm);
   opacity: 0.9;
@@ -488,6 +493,11 @@ a:hover {
     font-size: 1.7rem;
     margin-bottom: var(--space-sm);
     background: none;
+    -webkit-text-fill-color: white;
+    color: white;
+  }
+
+  .page-header h1 .hau-text {
     -webkit-text-fill-color: white;
     color: white;
   }
