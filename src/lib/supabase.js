@@ -39,3 +39,21 @@ export function getServiceSupabase() {
   
   return createClient(supabaseUrl, serviceRoleKey);
 }
+
+// Verify that the request comes from an authenticated admin
+// Returns the user object if valid, throws an error otherwise
+export async function verifyAdmin(request) {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new Error('Unauthorized: No token provided');
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user }, error } = await getServiceSupabase().auth.getUser(token);
+
+  if (error || !user) {
+    throw new Error('Unauthorized: Invalid token');
+  }
+
+  return user;
+}

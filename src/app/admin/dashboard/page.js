@@ -45,6 +45,19 @@ export default function AdminDashboardPage() {
     });
   }, [router]);
 
+  // Authenticated fetch helper — auto-attaches JWT token
+  const authFetch = useCallback(async (url, options = {}) => {
+    const token = session?.access_token;
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    });
+  }, [session]);
+
   // Data fetching
   const fetchAll = useCallback(async () => {
     try {
@@ -103,9 +116,8 @@ export default function AdminDashboardPage() {
 
   const handleCallNext = async (configId) => {
     try {
-      await fetch('/api/queue/next', {
+      await authFetch('/api/queue/next', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ configId })
       });
       fetchAll();
@@ -117,9 +129,8 @@ export default function AdminDashboardPage() {
 
   const handleStatusChange = async (entryId, action) => {
     try {
-      await fetch('/api/queue/status', {
+      await authFetch('/api/queue/status', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entryId, action })
       });
       fetchAll();
@@ -131,9 +142,8 @@ export default function AdminDashboardPage() {
 
   const handleToggleQueue = async (configId, isActive) => {
     try {
-      await fetch(`/api/queue-config/${configId}`, {
+      await authFetch(`/api/queue-config/${configId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: isActive })
       });
       fetchAll();
@@ -144,9 +154,8 @@ export default function AdminDashboardPage() {
 
   const handleToggleSchedule = async (scheduleId, isActive) => {
     try {
-      await fetch(`/api/schedules/${scheduleId}`, {
+      await authFetch(`/api/schedules/${scheduleId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: isActive })
       });
       fetchAll();
@@ -159,18 +168,16 @@ export default function AdminDashboardPage() {
     e.preventDefault();
     try {
       if (editingSchedule) {
-        await fetch(`/api/schedules/${editingSchedule.id}`, {
+        await authFetch(`/api/schedules/${editingSchedule.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...scheduleForm,
             year_level: parseInt(scheduleForm.year_level)
           })
         });
       } else {
-        await fetch('/api/schedules', {
+        await authFetch('/api/schedules', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...scheduleForm,
             year_level: parseInt(scheduleForm.year_level)
@@ -192,7 +199,7 @@ export default function AdminDashboardPage() {
   const handleDeleteSchedule = async (id) => {
     if (!confirm('Delete this schedule? This will also remove associated queue entries.')) return;
     try {
-      await fetch(`/api/schedules/${id}`, { method: 'DELETE' });
+      await authFetch(`/api/schedules/${id}`, { method: 'DELETE' });
       fetchAll();
     } catch (err) {
       console.error('Failed to delete schedule:', err);
@@ -202,9 +209,8 @@ export default function AdminDashboardPage() {
   const handleSaveCourse = async (e) => {
     e.preventDefault();
     try {
-      await fetch('/api/courses', {
+      await authFetch('/api/courses', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(courseForm)
       });
       setShowCourseModal(false);
@@ -218,7 +224,7 @@ export default function AdminDashboardPage() {
   const handleDeleteCourse = async (id) => {
     if (!confirm('Delete this course?')) return;
     try {
-      await fetch(`/api/courses/${id}`, { method: 'DELETE' });
+      await authFetch(`/api/courses/${id}`, { method: 'DELETE' });
       fetchAll();
     } catch (err) {
       console.error('Failed to delete course:', err);

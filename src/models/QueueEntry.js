@@ -2,35 +2,17 @@ import { supabase, getServiceSupabase } from '@/lib/supabase';
 
 const QueueEntry = {
   async create({ schedule_id, course_id, year_level, enrollment_type, student_name, student_id }) {
-    // Get the next queue number for this specific group
-    const { data: maxEntry, error: maxError } = await supabase
-      .from('queue_entries')
-      .select('queue_number')
-      .eq('schedule_id', schedule_id)
-      .eq('course_id', course_id)
-      .eq('year_level', year_level)
-      .eq('enrollment_type', enrollment_type)
-      .order('queue_number', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (maxError) throw maxError;
-
-    const nextNumber = (maxEntry?.queue_number || 0) + 1;
-
+    // Use the database RPC to atomically assign queue numbers
+    // This prevents race conditions under concurrent load
     const { data, error } = await getServiceSupabase()
-      .from('queue_entries')
-      .insert({
-        schedule_id,
-        course_id,
-        year_level,
-        enrollment_type,
-        student_name,
-        student_id,
-        queue_number: nextNumber,
-        status: 'waiting'
-      })
-      .select()
-      .single();
+      .rpc('join_queue', {
+        p_schedule_id: schedule_id,
+        p_course_id: course_id,
+        p_year_level: year_level,
+        p_enrollment_type: enrollment_type,
+        p_student_name: student_name,
+        p_student_id: student_id
+      });
     if (error) throw error;
     return data;
   },

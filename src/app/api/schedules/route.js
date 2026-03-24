@@ -1,31 +1,39 @@
 import { NextResponse } from 'next/server';
 import scheduleController from '@/controllers/scheduleController';
+import { verifyAdmin } from '@/lib/supabase';
+import { validate, createScheduleSchema } from '@/lib/validators';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/schedules — Get all schedules
+// GET /api/schedules — Get all schedules (public, cached 60s)
 export async function GET() {
   try {
     const schedules = await scheduleController.getAllSchedules();
-    return NextResponse.json(schedules);
+    return NextResponse.json(schedules, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30' }
+    });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// POST /api/schedules — Create a new schedule
+// POST /api/schedules — Create a new schedule (admin only)
 export async function POST(request) {
   try {
-    const body = await request.json();
-    const { course_id, enrollment_type, year_level, schedule_date, start_time, end_time } = body;
+    await verifyAdmin(request);
 
-    if (!course_id || !enrollment_type || !year_level || !schedule_date || !start_time || !end_time) {
-      return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
+    const body = await request.json();
+    const parsed = validate(createScheduleSchema, body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
     }
 
-    const schedule = await scheduleController.createSchedule(body);
+    const schedule = await scheduleController.createSchedule(parsed.data);
     return NextResponse.json(schedule, { status: 201 });
   } catch (error) {
+    if (error.message.startsWith('Unauthorized')) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

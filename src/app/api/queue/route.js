@@ -1,26 +1,44 @@
 import { NextResponse } from 'next/server';
 import queueController from '@/controllers/queueController';
+import { validate, joinQueueSchema } from '@/lib/validators';
+import { createRateLimiter, getClientIp } from '@/lib/rateLimiter';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/queue — Register a student in the queue
+// Rate limit: 2 registrations per 10 seconds per IP
+const limiter = createRateLimiter({ maxRequests: 2, windowMs: 10_000 });
+
+// POST /api/queue — Register a student in the queue (public, rate limited)
 export async function POST(request) {
   try {
-    const body = await request.json();
-    const { schedule_id, course_id, year_level, enrollment_type, student_name, student_id } = body;
-
-    if (!schedule_id || !course_id || !year_level || !enrollment_type || !student_name || !student_id) {
-      return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
+    // Check rate limit
+    const ip = getClientIp(request);
+    const { allowed, retryAfterMs } = limiter(ip);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a few seconds before trying again.' },
+        { 
+          status: 429,
+          headers: { 'Retry-After': String(Math.ceil(retryAfterMs / 1000)) }
+        }
+      );
     }
 
-    const entry = await queueController.registerStudent(body);
+    const body = await request.json();
+
+    const parsed = validate(joinQueueSchema, body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+
+    const entry = await queueController.registerStudent(parsed.data);
     return NextResponse.json(entry, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// GET /api/queue — Get all queues overview
+// GET /api/queue — Get all queues overview (public)
 export async function GET() {
   try {
     const queues = await queueController.getAllQueues();
