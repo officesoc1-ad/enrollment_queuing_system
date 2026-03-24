@@ -23,6 +23,11 @@ export default function Navbar() {
             </Link>
           </li>
           <li>
+            <Link href="/track" className={pathname === '/track' ? 'active' : ''}>
+              Find Queue
+            </Link>
+          </li>
+          <li>
             <Link href="/queue" className={pathname === '/queue' ? 'active' : ''}>
               Queue Board
             </Link>
