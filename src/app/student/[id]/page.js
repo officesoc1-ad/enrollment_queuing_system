@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 export default function StudentPOVPage() {
@@ -192,6 +193,16 @@ export default function StudentPOVPage() {
               <p style={{ fontWeight: 600 }}>{schedule?.schedule_date}</p>
             </div>
           </div>
+        </div>
+
+        {/* Navigation Actions */}
+        <div style={{ display: 'flex', gap: '16px', marginTop: '32px', justifyContent: 'center' }}>
+          <Link href="/" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🏠 Back to Home
+          </Link>
+          <Link href="/register" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            📝 Register Another
+          </Link>
         </div>
       </div>
     </>

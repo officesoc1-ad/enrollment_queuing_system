@@ -40,12 +40,18 @@ export default function RegisterPage() {
     fetchData();
   }, []);
 
-  // Find matching schedule based on selected course_id, year_level and enrollment_type
+  // Get today's date strictly in Philippine Time (Asia/Manila)
+  const getPHDate = () => {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
+  };
+
+  // Find matching schedule based on course, year, type, active status, AND proper timezone date
   const matchingSchedule = schedules.find(
     s => s.course_id === form.course_id &&
          s.year_level === parseInt(form.year_level) &&
          s.enrollment_type === form.enrollment_type &&
-         s.is_active
+         s.is_active &&
+         s.schedule_date === getPHDate()
   );
 
   const handleChange = (e) => {
