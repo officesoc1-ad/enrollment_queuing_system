@@ -148,9 +148,9 @@ export default function AdminDashboardPage() {
         body: JSON.stringify({ configId })
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      await fetchAll();
+      if (selectedQueue) await fetchQueueEntries(selectedQueue);
       showToast('Next student called successfully');
-      fetchAll();
-      if (selectedQueue) fetchQueueEntries(selectedQueue);
     } catch (err) {
       showToast(err.message || 'Failed to call next', 'error');
     }
@@ -163,9 +163,9 @@ export default function AdminDashboardPage() {
         body: JSON.stringify({ entryId, action })
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      await fetchAll();
+      if (selectedQueue) await fetchQueueEntries(selectedQueue);
       showToast(`Student ${action === 'complete' ? 'completed' : 'skipped'} successfully`);
-      fetchAll();
-      if (selectedQueue) fetchQueueEntries(selectedQueue);
     } catch (err) {
       showToast(err.message || 'Failed to update status', 'error');
     }
@@ -178,8 +178,8 @@ export default function AdminDashboardPage() {
         body: JSON.stringify({ is_active: isActive })
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      await fetchAll();
       showToast(`Queue ${isActive ? 'activated' : 'paused'}`);
-      fetchAll();
     } catch (err) {
       showToast(err.message || 'Failed to toggle queue', 'error');
     }
@@ -192,8 +192,8 @@ export default function AdminDashboardPage() {
         body: JSON.stringify({ is_active: isActive })
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      await fetchAll();
       showToast(`Schedule ${isActive ? 'activated' : 'deactivated'}`);
-      fetchAll();
     } catch (err) {
       showToast(err.message || 'Failed to toggle schedule', 'error');
     }
@@ -221,6 +221,7 @@ export default function AdminDashboardPage() {
         });
       }
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      await fetchAll();
       showToast(editingSchedule ? 'Schedule updated' : 'Schedule created');
       setShowScheduleModal(false);
       setEditingSchedule(null);
@@ -228,7 +229,6 @@ export default function AdminDashboardPage() {
         course_id: '', enrollment_type: 'block_section', year_level: '1',
         schedule_date: '', start_time: '', end_time: ''
       });
-      fetchAll();
     } catch (err) {
       showToast(err.message || 'Failed to save schedule', 'error');
     }
@@ -239,8 +239,8 @@ export default function AdminDashboardPage() {
     try {
       const res = await authFetch(`/api/schedules/${id}`, { method: 'DELETE' });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      await fetchAll();
       showToast('Schedule deleted');
-      fetchAll();
     } catch (err) {
       showToast(err.message || 'Failed to delete schedule', 'error');
     }
@@ -254,10 +254,10 @@ export default function AdminDashboardPage() {
         body: JSON.stringify(courseForm)
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      await fetchAll();
       showToast('Course created');
       setShowCourseModal(false);
       setCourseForm({ code: '', name: '' });
-      fetchAll();
     } catch (err) {
       showToast(err.message || 'Failed to save course', 'error');
     }
@@ -268,8 +268,8 @@ export default function AdminDashboardPage() {
     try {
       const res = await authFetch(`/api/courses/${id}`, { method: 'DELETE' });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      await fetchAll();
       showToast('Course deleted');
-      fetchAll();
     } catch (err) {
       showToast(err.message || 'Failed to delete course', 'error');
     }

@@ -177,10 +177,14 @@ export default function RegisterPage() {
                 type="text"
                 name="student_id"
                 className="form-input"
-                placeholder="e.g. 2024-00001"
+                placeholder="e.g. 12345678"
                 value={form.student_id}
                 onChange={handleChange}
                 autoComplete="off"
+                maxLength={8}
+                minLength={8}
+                pattern="\d{8}"
+                title="Student ID must be exactly 8 digits"
                 required
               />
             </div>
