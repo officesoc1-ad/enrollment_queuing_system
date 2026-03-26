@@ -33,6 +33,9 @@ export default function AdminDashboardPage() {
   });
   const [courseForm, setCourseForm] = useState({ code: '', name: '' });
 
+  // Action loading state for instant visual feedback
+  const [loadingAction, setLoadingAction] = useState(null);
+
   // Toast notification state
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
@@ -142,6 +145,7 @@ export default function AdminDashboardPage() {
   };
 
   const handleCallNext = async (configId) => {
+    setLoadingAction('call-next');
     try {
       const res = await authFetch('/api/queue/next', {
         method: 'POST',
@@ -153,10 +157,13 @@ export default function AdminDashboardPage() {
       showToast('Next student called successfully');
     } catch (err) {
       showToast(err.message || 'Failed to call next', 'error');
+    } finally {
+      setLoadingAction(null);
     }
   };
 
   const handleStatusChange = async (entryId, action) => {
+    setLoadingAction(`${action}-${entryId}`);
     try {
       const res = await authFetch('/api/queue/status', {
         method: 'POST',
@@ -168,10 +175,13 @@ export default function AdminDashboardPage() {
       showToast(`Student ${action === 'complete' ? 'completed' : 'skipped'} successfully`);
     } catch (err) {
       showToast(err.message || 'Failed to update status', 'error');
+    } finally {
+      setLoadingAction(null);
     }
   };
 
   const handleToggleQueue = async (configId, isActive) => {
+    setLoadingAction(`toggle-q-${configId}`);
     try {
       const res = await authFetch(`/api/queue-config/${configId}`, {
         method: 'PUT',
@@ -182,10 +192,13 @@ export default function AdminDashboardPage() {
       showToast(`Queue ${isActive ? 'activated' : 'paused'}`);
     } catch (err) {
       showToast(err.message || 'Failed to toggle queue', 'error');
+    } finally {
+      setLoadingAction(null);
     }
   };
 
   const handleToggleSchedule = async (scheduleId, isActive) => {
+    setLoadingAction(`toggle-s-${scheduleId}`);
     try {
       const res = await authFetch(`/api/schedules/${scheduleId}`, {
         method: 'PUT',
@@ -196,6 +209,8 @@ export default function AdminDashboardPage() {
       showToast(`Schedule ${isActive ? 'activated' : 'deactivated'}`);
     } catch (err) {
       showToast(err.message || 'Failed to toggle schedule', 'error');
+    } finally {
+      setLoadingAction(null);
     }
   };
 
@@ -454,6 +469,7 @@ export default function AdminDashboardPage() {
                               type="checkbox"
                               checked={q.is_active}
                               onChange={() => handleToggleQueue(q.id, !q.is_active)}
+                              disabled={loadingAction === `toggle-q-${q.id}`}
                             />
                             <span className="toggle-slider"></span>
                           </label>
@@ -476,8 +492,9 @@ export default function AdminDashboardPage() {
                     <button
                       className="btn btn-primary"
                       onClick={() => handleCallNext(selectedQueue.id)}
+                      disabled={loadingAction === 'call-next'}
                     >
-                      ▶ Call Next
+                      {loadingAction === 'call-next' ? 'Calling...' : '▶ Call Next'}
                     </button>
                   </div>
 
@@ -536,14 +553,16 @@ export default function AdminDashboardPage() {
                                     <button
                                       className="btn btn-success btn-sm"
                                       onClick={() => handleStatusChange(entry.id, 'complete')}
+                                      disabled={loadingAction === `complete-${entry.id}`}
                                     >
-                                      ✓ Done
+                                      {loadingAction === `complete-${entry.id}` ? '...' : '✓ Done'}
                                     </button>
                                     <button
                                       className="btn btn-warning btn-sm"
                                       onClick={() => handleStatusChange(entry.id, 'skip')}
+                                      disabled={loadingAction === `skip-${entry.id}`}
                                     >
-                                      Skip
+                                      {loadingAction === `skip-${entry.id}` ? '...' : 'Skip'}
                                     </button>
                                   </div>
                                 )}
