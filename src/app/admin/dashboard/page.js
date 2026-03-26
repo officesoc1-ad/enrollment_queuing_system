@@ -15,6 +15,8 @@ export default function AdminDashboardPage() {
   const [schedules, setSchedules] = useState([]);
   const [courses, setCourses] = useState([]);
   const [selectedQueue, setSelectedQueue] = useState(null);
+  const selectedQueueRef = useRef(null);
+  const debounceTimer = useRef(null);
   const [queueEntries, setQueueEntries] = useState([]);
 
   // Modal states
@@ -88,7 +90,6 @@ export default function AdminDashboardPage() {
     });
   }, [session, router]);
 
-  // Data fetching
   const fetchAll = useCallback(async () => {
     try {
       const [qRes, sRes, cRes] = await Promise.all([
@@ -104,23 +105,47 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
+  // Targeted re-fetch to save bandwidth
+  const fetchQueuesOnly = useCallback(async () => {
+    try {
+      const res = await fetch('/api/queue');
+      const data = await res.json();
+      setQueues(data);
+    } catch (err) {
+      console.error('Failed to fetch queues:', err);
+    }
+  }, []);
+
   useEffect(() => {
     if (session) fetchAll();
   }, [session, fetchAll]);
 
-  // Real-time subscriptions
+  // Keep selectedQueueRef in sync without triggering effects
   useEffect(() => {
+    selectedQueueRef.current = selectedQueue;
+  }, [selectedQueue]);
+
+  // Real-time subscriptions (Debounced)
+  useEffect(() => {
+    const handleRealtimeChange = () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      debounceTimer.current = setTimeout(() => {
+        fetchQueuesOnly();
+        if (selectedQueueRef.current) fetchQueueEntries(selectedQueueRef.current);
+      }, 300); // 300ms quiet period before fetching
+    };
+
     const channel = supabase
       .channel('admin-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_configs' }, fetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_entries' }, () => {
-        fetchAll();
-        if (selectedQueue) fetchQueueEntries(selectedQueue);
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_configs' }, handleRealtimeChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_entries' }, handleRealtimeChange)
       .subscribe();
 
-    return () => supabase.removeChannel(channel);
-  }, [fetchAll, selectedQueue]);
+    return () => {
+      supabase.removeChannel(channel);
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [fetchQueuesOnly]);
 
   const fetchQueueEntries = async (config) => {
     try {
@@ -146,17 +171,38 @@ export default function AdminDashboardPage() {
 
   const handleCallNext = async (configId) => {
     setLoadingAction('call-next');
+    
+    // OPTIMISTIC UI: Find the next waiting person
+    const nextEntry = queueEntries.find(e => e.status === 'waiting');
+    if (nextEntry) {
+      setQueueEntries(prev => prev.map(e => e.id === nextEntry.id ? { ...e, status: 'serving' } : e));
+      const updateData = (q) => {
+        if (q.id === configId) {
+          return {
+            ...q,
+            current_serving: nextEntry.queue_number,
+            counts: { ...q.counts, waiting: Math.max(0, (q.counts?.waiting || 0) - 1), serving: (q.counts?.serving || 0) + 1 }
+          };
+        }
+        return q;
+      };
+      setQueues(prev => prev.map(updateData));
+      if (selectedQueue && selectedQueue.id === configId) setSelectedQueue(prev => updateData(prev));
+    }
+
     try {
       const res = await authFetch('/api/queue/next', {
         method: 'POST',
         body: JSON.stringify({ configId })
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      await fetchAll();
-      if (selectedQueue) await fetchQueueEntries(selectedQueue);
+      // Success! Realtime listener will handle background true-up.
       showToast('Next student called successfully');
     } catch (err) {
       showToast(err.message || 'Failed to call next', 'error');
+      // Revert optimistic updates
+      fetchQueuesOnly();
+      if (selectedQueue) fetchQueueEntries(selectedQueue);
     } finally {
       setLoadingAction(null);
     }
@@ -164,17 +210,37 @@ export default function AdminDashboardPage() {
 
   const handleStatusChange = async (entryId, action) => {
     setLoadingAction(`${action}-${entryId}`);
+
+    // OPTIMISTIC UI
+    const newStatus = action === 'complete' ? 'completed' : 'skipped';
+    setQueueEntries(prev => prev.map(e => e.id === entryId ? { ...e, status: newStatus } : e));
+    if (selectedQueue) {
+      const updateData = (q) => {
+        if (q.id === selectedQueue.id) {
+          return {
+            ...q,
+            counts: { ...q.counts, serving: Math.max(0, (q.counts?.serving || 0) - 1), completed: action === 'complete' ? (q.counts?.completed || 0) + 1 : (q.counts?.completed || 0) }
+          };
+        }
+        return q;
+      };
+      setQueues(prev => prev.map(updateData));
+      setSelectedQueue(prev => updateData(prev));
+    }
+
     try {
       const res = await authFetch('/api/queue/status', {
         method: 'POST',
         body: JSON.stringify({ entryId, action })
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      await fetchAll();
-      if (selectedQueue) await fetchQueueEntries(selectedQueue);
+      // Success!
       showToast(`Student ${action === 'complete' ? 'completed' : 'skipped'} successfully`);
     } catch (err) {
       showToast(err.message || 'Failed to update status', 'error');
+      // Revert optimistic updates
+      fetchQueuesOnly();
+      if (selectedQueue) fetchQueueEntries(selectedQueue);
     } finally {
       setLoadingAction(null);
     }
@@ -182,16 +248,22 @@ export default function AdminDashboardPage() {
 
   const handleToggleQueue = async (configId, isActive) => {
     setLoadingAction(`toggle-q-${configId}`);
+    
+    // OPTIMISTIC UI
+    const updateData = q => q.id === configId ? { ...q, is_active: isActive } : q;
+    setQueues(prev => prev.map(updateData));
+    if (selectedQueue && selectedQueue.id === configId) setSelectedQueue(prev => updateData(prev));
+
     try {
       const res = await authFetch(`/api/queue-config/${configId}`, {
         method: 'PUT',
         body: JSON.stringify({ is_active: isActive })
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      await fetchAll();
       showToast(`Queue ${isActive ? 'activated' : 'paused'}`);
     } catch (err) {
       showToast(err.message || 'Failed to toggle queue', 'error');
+      fetchQueuesOnly();
     } finally {
       setLoadingAction(null);
     }
