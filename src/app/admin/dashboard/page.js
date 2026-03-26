@@ -500,10 +500,10 @@ export default function AdminDashboardPage() {
 
                   <div style={{ marginBottom: '16px', display: 'flex', gap: '12px' }}>
                     <div className="stat-card card" style={{ flex: 1, padding: '12px' }}>
-                      <div className="stat-value" style={{ fontSize: '1.75rem' }}>
-                        {selectedQueue.current_serving || '—'}
+                      <div className="stat-value" style={{ fontSize: '1.75rem', color: '#6366f1' }}>
+                        {selectedQueue.current_serving ? `#${selectedQueue.current_serving}` : '—'}
                       </div>
-                      <div className="stat-label" style={{ fontSize: '0.6875rem' }}>Now Serving</div>
+                      <div className="stat-label" style={{ fontSize: '0.6875rem' }}>Ticket Called</div>
                     </div>
                     <div className="stat-card card" style={{ flex: 1, padding: '12px' }}>
                       <div className="stat-value" style={{ fontSize: '1.75rem', color: '#3b82f6' }}>
