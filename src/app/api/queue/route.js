@@ -34,6 +34,14 @@ export async function POST(request) {
     const entry = await queueController.registerStudent(parsed.data);
     return NextResponse.json(entry, { status: 201 });
   } catch (error) {
+    // Handle duplicate registration — redirect student to their existing queue
+    if (error.message?.includes('DUPLICATE_REGISTRATION')) {
+      const existingId = error.message.split('DUPLICATE_REGISTRATION:')[1];
+      return NextResponse.json(
+        { error: 'You are already registered in this queue.', existingEntryId: existingId },
+        { status: 409 }
+      );
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

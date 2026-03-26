@@ -1,5 +1,6 @@
 -- Run this in the Supabase SQL Editor to implement secure queue numbering
 -- This function mathematically prevents two students from getting the same queue number during traffic spikes
+-- It also prevents duplicate registrations (same student_id in the same queue)
 
 CREATE OR REPLACE FUNCTION join_queue(
   p_schedule_id UUID,
@@ -12,7 +13,23 @@ CREATE OR REPLACE FUNCTION join_queue(
 DECLARE
   v_next_num INT;
   v_entry queue_entries;
+  v_existing queue_entries;
 BEGIN
+  -- 0. Check for duplicate registration (same student in the same queue group, still active)
+  SELECT * INTO v_existing
+  FROM queue_entries
+  WHERE schedule_id = p_schedule_id
+    AND course_id = p_course_id
+    AND year_level = p_year_level
+    AND enrollment_type = p_enrollment_type
+    AND student_id = p_student_id
+    AND status IN ('waiting', 'serving')
+  LIMIT 1;
+
+  IF v_existing.id IS NOT NULL THEN
+    RAISE EXCEPTION 'DUPLICATE_REGISTRATION:%', v_existing.id;
+  END IF;
+
   -- 1. Lock the queue configuration row using FOR UPDATE
   -- This forces any simultaneous requests for the exact same queue to wait in line.
   PERFORM 1 FROM queue_configs 

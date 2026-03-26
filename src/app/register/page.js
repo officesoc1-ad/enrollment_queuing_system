@@ -97,12 +97,20 @@ export default function RegisterPage() {
       });
 
       const data = await res.json();
+
+      // Handle duplicate registration — redirect to existing queue
+      if (res.status === 409 && data.existingEntryId) {
+        router.push(`/student/${data.existingEntryId}`);
+        return;
+      }
+
       if (!res.ok) throw new Error(data.error);
 
       // Redirect to student POV page
       router.push(`/student/${data.id}`);
     } catch (err) {
       setError(err.message);
+      setTimeout(() => setError(''), 5000);
     } finally {
       setSubmitting(false);
     }

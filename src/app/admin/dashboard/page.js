@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -33,8 +33,13 @@ export default function AdminDashboardPage() {
   });
   const [courseForm, setCourseForm] = useState({ code: '', name: '' });
 
-  // Auth check
+  // Toast notification state
+  const [toast, setToast] = useState(null);
+  const toastTimer = useRef(null);
+
+  // Auth check + auto-refresh listener
   useEffect(() => {
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         router.push('/admin');
@@ -43,20 +48,42 @@ export default function AdminDashboardPage() {
         setLoading(false);
       }
     });
+
+    // Listen for token refreshes and sign-out events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (event === 'SIGNED_OUT') {
+        setSession(null);
+        router.push('/admin');
+      } else if (newSession) {
+        // Covers TOKEN_REFRESHED, SIGNED_IN, and INITIAL_SESSION
+        setSession(newSession);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [router]);
 
-  // Authenticated fetch helper — auto-attaches JWT token
+  // Authenticated fetch helper — always uses the latest token from state
   const authFetch = useCallback(async (url, options = {}) => {
-    const token = session?.access_token;
+    // Re-fetch session to guarantee freshest token (handles edge case where
+    // state hasn't propagated yet after a background refresh)
+    const { data: { session: freshSession } } = await supabase.auth.getSession();
+    const token = freshSession?.access_token || session?.access_token;
+
+    if (!token) {
+      router.push('/admin');
+      throw new Error('Session expired. Please log in again.');
+    }
+
     return fetch(url, {
       ...options,
       headers: {
         ...options.headers,
         'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        'Authorization': `Bearer ${token}`
       }
     });
-  }, [session]);
+  }, [session, router]);
 
   // Data fetching
   const fetchAll = useCallback(async () => {
@@ -116,59 +143,68 @@ export default function AdminDashboardPage() {
 
   const handleCallNext = async (configId) => {
     try {
-      await authFetch('/api/queue/next', {
+      const res = await authFetch('/api/queue/next', {
         method: 'POST',
         body: JSON.stringify({ configId })
       });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      showToast('Next student called successfully');
       fetchAll();
       if (selectedQueue) fetchQueueEntries(selectedQueue);
     } catch (err) {
-      console.error('Failed to call next:', err);
+      showToast(err.message || 'Failed to call next', 'error');
     }
   };
 
   const handleStatusChange = async (entryId, action) => {
     try {
-      await authFetch('/api/queue/status', {
+      const res = await authFetch('/api/queue/status', {
         method: 'POST',
         body: JSON.stringify({ entryId, action })
       });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      showToast(`Student ${action === 'complete' ? 'completed' : 'skipped'} successfully`);
       fetchAll();
       if (selectedQueue) fetchQueueEntries(selectedQueue);
     } catch (err) {
-      console.error('Failed to update status:', err);
+      showToast(err.message || 'Failed to update status', 'error');
     }
   };
 
   const handleToggleQueue = async (configId, isActive) => {
     try {
-      await authFetch(`/api/queue-config/${configId}`, {
+      const res = await authFetch(`/api/queue-config/${configId}`, {
         method: 'PUT',
         body: JSON.stringify({ is_active: isActive })
       });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      showToast(`Queue ${isActive ? 'activated' : 'paused'}`);
       fetchAll();
     } catch (err) {
-      console.error('Failed to toggle queue:', err);
+      showToast(err.message || 'Failed to toggle queue', 'error');
     }
   };
 
   const handleToggleSchedule = async (scheduleId, isActive) => {
     try {
-      await authFetch(`/api/schedules/${scheduleId}`, {
+      const res = await authFetch(`/api/schedules/${scheduleId}`, {
         method: 'PUT',
         body: JSON.stringify({ is_active: isActive })
       });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      showToast(`Schedule ${isActive ? 'activated' : 'deactivated'}`);
       fetchAll();
     } catch (err) {
-      console.error('Failed to toggle schedule:', err);
+      showToast(err.message || 'Failed to toggle schedule', 'error');
     }
   };
 
   const handleSaveSchedule = async (e) => {
     e.preventDefault();
     try {
+      let res;
       if (editingSchedule) {
-        await authFetch(`/api/schedules/${editingSchedule.id}`, {
+        res = await authFetch(`/api/schedules/${editingSchedule.id}`, {
           method: 'PUT',
           body: JSON.stringify({
             ...scheduleForm,
@@ -176,7 +212,7 @@ export default function AdminDashboardPage() {
           })
         });
       } else {
-        await authFetch('/api/schedules', {
+        res = await authFetch('/api/schedules', {
           method: 'POST',
           body: JSON.stringify({
             ...scheduleForm,
@@ -184,6 +220,8 @@ export default function AdminDashboardPage() {
           })
         });
       }
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      showToast(editingSchedule ? 'Schedule updated' : 'Schedule created');
       setShowScheduleModal(false);
       setEditingSchedule(null);
       setScheduleForm({
@@ -192,42 +230,48 @@ export default function AdminDashboardPage() {
       });
       fetchAll();
     } catch (err) {
-      console.error('Failed to save schedule:', err);
+      showToast(err.message || 'Failed to save schedule', 'error');
     }
   };
 
   const handleDeleteSchedule = async (id) => {
     if (!confirm('Delete this schedule? This will also remove associated queue entries.')) return;
     try {
-      await authFetch(`/api/schedules/${id}`, { method: 'DELETE' });
+      const res = await authFetch(`/api/schedules/${id}`, { method: 'DELETE' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      showToast('Schedule deleted');
       fetchAll();
     } catch (err) {
-      console.error('Failed to delete schedule:', err);
+      showToast(err.message || 'Failed to delete schedule', 'error');
     }
   };
 
   const handleSaveCourse = async (e) => {
     e.preventDefault();
     try {
-      await authFetch('/api/courses', {
+      const res = await authFetch('/api/courses', {
         method: 'POST',
         body: JSON.stringify(courseForm)
       });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      showToast('Course created');
       setShowCourseModal(false);
       setCourseForm({ code: '', name: '' });
       fetchAll();
     } catch (err) {
-      console.error('Failed to save course:', err);
+      showToast(err.message || 'Failed to save course', 'error');
     }
   };
 
   const handleDeleteCourse = async (id) => {
     if (!confirm('Delete this course?')) return;
     try {
-      await authFetch(`/api/courses/${id}`, { method: 'DELETE' });
+      const res = await authFetch(`/api/courses/${id}`, { method: 'DELETE' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      showToast('Course deleted');
       fetchAll();
     } catch (err) {
-      console.error('Failed to delete course:', err);
+      showToast(err.message || 'Failed to delete course', 'error');
     }
   };
 
@@ -243,6 +287,13 @@ export default function AdminDashboardPage() {
     });
     setShowScheduleModal(true);
   };
+
+  // Toast helper
+  const showToast = useCallback((message, type = 'success') => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ message, type });
+    toastTimer.current = setTimeout(() => setToast(null), 4000);
+  }, []);
 
   // Helpers
   const yearSuffix = (y) => ['', '1st', '2nd', '3rd', '4th'][y] || `${y}th`;
@@ -273,6 +324,33 @@ export default function AdminDashboardPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f3f4f6' }}>
+      {/* Toast notification */}
+      {toast && (
+        <div
+          onClick={() => setToast(null)}
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            zIndex: 9999,
+            padding: '14px 24px',
+            borderRadius: '10px',
+            color: 'white',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+            background: toast.type === 'error'
+              ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+              : 'linear-gradient(135deg, #22c55e, #16a34a)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+            cursor: 'pointer',
+            animation: 'slideIn 0.3s ease-out',
+            maxWidth: '400px'
+          }}
+        >
+          {toast.type === 'error' ? '❌' : '✅'} {toast.message}
+        </div>
+      )}
+      <style>{`@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`}</style>
       {/* Top bar */}
       <div style={{
         background: 'white',
