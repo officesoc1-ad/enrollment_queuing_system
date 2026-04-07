@@ -38,6 +38,9 @@ export default function AdminDashboardPage() {
   // Action loading state for instant visual feedback
   const [loadingAction, setLoadingAction] = useState(null);
 
+  // Kiosk authorization state
+  const [kioskAuthorized, setKioskAuthorized] = useState(null);
+
   // Toast notification state
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
@@ -120,6 +123,16 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (session) fetchAll();
   }, [session, fetchAll]);
+
+  // Fetch kiosk authorization status
+  useEffect(() => {
+    if (session) {
+      fetch('/api/kiosk/status', { cache: 'no-store' })
+        .then(res => res.json())
+        .then(data => setKioskAuthorized(data.authorized))
+        .catch(() => setKioskAuthorized(false));
+    }
+  }, [session]);
 
   // Keep selectedQueueRef in sync without triggering effects
   useEffect(() => {
@@ -445,6 +458,35 @@ export default function AdminDashboardPage() {
   const totalCompleted = queues.reduce((sum, q) => sum + (q.counts?.completed || 0), 0);
   const activeQueues = queues.filter(q => q.is_active).length;
 
+  const handleKioskAuthorize = async () => {
+    setLoadingAction('kiosk-authorize');
+    try {
+      const res = await authFetch('/api/kiosk/authorize', { method: 'POST' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      setKioskAuthorized(true);
+      showToast('This device is now authorized for student registration');
+    } catch (err) {
+      showToast(err.message || 'Failed to authorize device', 'error');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleKioskRevoke = async () => {
+    if (!confirm('Revoke kiosk authorization? Students will not be able to register on this device until re-authorized.')) return;
+    setLoadingAction('kiosk-revoke');
+    try {
+      const res = await authFetch('/api/kiosk/revoke', { method: 'POST' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      setKioskAuthorized(false);
+      showToast('Kiosk authorization revoked');
+    } catch (err) {
+      showToast(err.message || 'Failed to revoke', 'error');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: '#f3f4f6' }}>
       {/* Toast notification */}
@@ -511,6 +553,54 @@ export default function AdminDashboardPage() {
             <div className="stat-value" style={{ color: '#10b981' }}>{totalCompleted}</div>
             <div className="stat-label">Completed</div>
           </div>
+        </div>
+
+        {/* Kiosk Authorization Banner */}
+        <div style={{
+          marginBottom: '24px',
+          padding: '16px 20px',
+          borderRadius: '12px',
+          border: `2px solid ${kioskAuthorized ? '#86efac' : '#fca5a5'}`,
+          background: kioskAuthorized
+            ? 'linear-gradient(135deg, #f0fdf4, #dcfce7)'
+            : 'linear-gradient(135deg, #fef2f2, #fee2e2)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '16px',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '1.5rem' }}>{kioskAuthorized ? '🔓' : '🔒'}</span>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: kioskAuthorized ? '#166534' : '#991b1b' }}>
+                Kiosk Mode: {kioskAuthorized ? 'Authorized' : 'Not Authorized'}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: kioskAuthorized ? '#15803d' : '#b91c1c', marginTop: '2px' }}>
+                {kioskAuthorized
+                  ? 'This device can accept student registrations. Authorization expires at midnight.'
+                  : 'Students cannot register on this device. Click "Authorize" to enable registration.'}
+              </div>
+            </div>
+          </div>
+          {kioskAuthorized ? (
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={handleKioskRevoke}
+              disabled={loadingAction === 'kiosk-revoke'}
+            >
+              {loadingAction === 'kiosk-revoke' ? 'Revoking...' : 'Revoke'}
+            </button>
+          ) : (
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleKioskAuthorize}
+              disabled={loadingAction === 'kiosk-authorize'}
+              style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none' }}
+            >
+              {loadingAction === 'kiosk-authorize' ? 'Authorizing...' : '🔑 Authorize This Device'}
+            </button>
+          )}
         </div>
 
         {/* Tabs */}

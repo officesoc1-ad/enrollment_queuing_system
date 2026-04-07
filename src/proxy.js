@@ -1,39 +1,19 @@
 import { NextResponse } from 'next/server';
+import { createHmac } from 'crypto';
 
-// Terminal mode route enforcement
-// Each machine sets NEXT_PUBLIC_TERMINAL_MODE in .env.local to: register | admin | display
+// Kiosk cookie validation — checks HMAC of today's date
+function isValidKioskToken(token) {
+  const secret = process.env.KIOSK_SECRET;
+  if (!secret || !token) return false;
 
-const MODE_RULES = {
-  register: {
-    // Pages the registration terminal can access
-    allowedPages: ['/register', '/student'],
-    // API routes the registration terminal can access
-    allowedApi: ['/api/queue', '/api/courses', '/api/schedules', '/api/queue/'],
-    // Where to redirect if accessing a blocked page
-    homePage: '/register',
-  },
-  display: {
-    allowedPages: ['/queue', '/track', '/student'],
-    allowedApi: ['/api/queue', '/api/track', '/api/queue/'],
-    homePage: '/queue',
-  },
-  // admin mode has no restrictions
-};
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
+  const expected = createHmac('sha256', secret).update(`kiosk-${today}`).digest('hex');
+
+  return token === expected;
+}
 
 export function proxy(request) {
-  const mode = process.env.NEXT_PUBLIC_TERMINAL_MODE;
   const { pathname } = request.nextUrl;
-
-  // No restrictions if mode is not set or is admin
-  if (!mode || mode === 'admin') {
-    return NextResponse.next();
-  }
-
-  const rules = MODE_RULES[mode];
-  if (!rules) {
-    // Unknown mode — allow everything to avoid breaking the app
-    return NextResponse.next();
-  }
 
   // Skip static assets, _next, favicon, etc.
   if (
@@ -44,41 +24,22 @@ export function proxy(request) {
     return NextResponse.next();
   }
 
-  // Handle API routes
-  if (pathname.startsWith('/api/')) {
-    const isAllowed = rules.allowedApi.some(route => pathname.startsWith(route));
+  // --- Kiosk device authorization check ---
+  // Block /register page and POST /api/queue for unauthorized devices
+  const kioskToken = request.cookies.get('kiosk_token')?.value;
+  const isKioskAuthorized = isValidKioskToken(kioskToken);
 
-    if (!isAllowed) {
-      return NextResponse.json(
-        { error: 'Access denied for this terminal mode' },
-        { status: 403 }
-      );
-    }
-
-    // For display mode, block all write operations (POST/PUT/DELETE)
-    if (mode === 'display') {
-      const method = request.method;
-      if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
-        return NextResponse.json(
-          { error: 'This terminal is read-only' },
-          { status: 403 }
-        );
-      }
-    }
-
-    return NextResponse.next();
+  // Block registration page if device is not authorized
+  if (pathname.startsWith('/register') && !isKioskAuthorized) {
+    return NextResponse.redirect(new URL('/?kiosk=unauthorized', request.url));
   }
 
-  // Handle page routes
-  // Root "/" gets redirected to the terminal's home page
-  if (pathname === '/') {
-    return NextResponse.redirect(new URL(rules.homePage, request.url));
-  }
-
-  const isAllowed = rules.allowedPages.some(page => pathname.startsWith(page));
-
-  if (!isAllowed) {
-    return NextResponse.redirect(new URL(rules.homePage, request.url));
+  // Block queue registration API if device is not authorized
+  if (pathname === '/api/queue' && request.method === 'POST' && !isKioskAuthorized) {
+    return NextResponse.json(
+      { error: 'This device is not authorized for registration. An admin must authorize this device first.' },
+      { status: 403 }
+    );
   }
 
   return NextResponse.next();
