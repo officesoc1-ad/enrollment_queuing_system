@@ -92,10 +92,11 @@ export default function AdminDashboardPage() {
 
   const fetchAll = useCallback(async () => {
     try {
+      const opts = { cache: 'no-store' };
       const [qRes, sRes, cRes] = await Promise.all([
-        fetch('/api/queue'),
-        fetch('/api/schedules'),
-        fetch('/api/courses')
+        fetch('/api/queue', opts),
+        fetch('/api/schedules', opts),
+        fetch('/api/courses', opts)
       ]);
       setQueues(await qRes.json());
       setSchedules(await sRes.json());
@@ -108,7 +109,7 @@ export default function AdminDashboardPage() {
   // Targeted re-fetch to save bandwidth
   const fetchQueuesOnly = useCallback(async () => {
     try {
-      const res = await fetch('/api/queue');
+      const res = await fetch('/api/queue', { cache: 'no-store' });
       const data = await res.json();
       setQueues(data);
     } catch (err) {
