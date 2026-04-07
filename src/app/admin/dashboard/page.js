@@ -288,6 +288,21 @@ export default function AdminDashboardPage() {
 
   const handleSaveSchedule = async (e) => {
     e.preventDefault();
+
+    const activeConflict = queues.find(q => 
+      q.course_id === scheduleForm.course_id &&
+      q.year_level === parseInt(scheduleForm.year_level) &&
+      q.enrollment_type === scheduleForm.enrollment_type &&
+      q.is_active &&
+      (!editingSchedule || q.schedule_id !== editingSchedule.id)
+    );
+
+    if (activeConflict) {
+      showToast('Cannot save schedule: An active queue already exists for this course, year level, and enrollment type.', 'error');
+      return;
+    }
+
+    setLoadingAction('save-schedule');
     try {
       let res;
       if (editingSchedule) {
@@ -308,9 +323,27 @@ export default function AdminDashboardPage() {
         });
       }
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      
+      const savedSchedule = await res.json();
       await fetchAll();
       showToast(editingSchedule ? 'Schedule updated' : 'Schedule created');
       setShowScheduleModal(false);
+
+      if (!editingSchedule) {
+        setActiveTab('queues');
+        try {
+          const qRes = await authFetch('/api/queue');
+          const finalQueues = await qRes.json();
+          const newlyCreated = finalQueues.find(q => q.schedule_id === savedSchedule.id);
+          if (newlyCreated) {
+            setSelectedQueue(newlyCreated);
+            fetchQueueEntries(newlyCreated);
+          }
+        } catch (e) {
+          // Ignore silently
+        }
+      }
+
       setEditingSchedule(null);
       setScheduleForm({
         course_id: '', enrollment_type: 'block_section', year_level: '1',
@@ -318,6 +351,8 @@ export default function AdminDashboardPage() {
       });
     } catch (err) {
       showToast(err.message || 'Failed to save schedule', 'error');
+    } finally {
+      setLoadingAction(null);
     }
   };
 
@@ -492,8 +527,15 @@ export default function AdminDashboardPage() {
 
         {/* ===== QUEUES TAB ===== */}
         {activeTab === 'queues' && (
-          <div className="grid grid-2" style={{ alignItems: 'start' }}>
-            {/* Left: Queue list */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div className="alert alert-warning" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '1.5rem' }}>⚠️</span>
+              <div>
+                <strong>Important Note:</strong> You must activate a queue using the toggle switch before students can register for it.
+              </div>
+            </div>
+            <div className="grid grid-2" style={{ alignItems: 'start' }}>
+              {/* Left: Queue list */}
             <div>
               <div className="card">
                 <div className="card-header">
@@ -653,6 +695,7 @@ export default function AdminDashboardPage() {
                 </div>
               )}
             </div>
+          </div>
           </div>
         )}
 
@@ -861,8 +904,8 @@ export default function AdminDashboardPage() {
                 <button type="button" className="btn btn-secondary" onClick={() => setShowScheduleModal(false)}>
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  {editingSchedule ? 'Save Changes' : 'Create Schedule'}
+                <button type="submit" className="btn btn-primary" disabled={loadingAction === 'save-schedule'}>
+                  {loadingAction === 'save-schedule' ? 'Saving...' : editingSchedule ? 'Save Changes' : 'Create Schedule'}
                 </button>
               </div>
             </form>
