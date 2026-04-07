@@ -39,10 +39,10 @@ export default async function HomePage({ searchParams }) {
             <span style={{ fontSize: '1.5rem' }}>🔒</span>
             <div>
               <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#991b1b' }}>
-                Registration Not Available
+                Access Restricted
               </div>
               <div style={{ fontSize: '0.85rem', color: '#b91c1c', marginTop: '2px' }}>
-                This device is not authorized for student registration. Please use the designated registration computer at the registrar&apos;s office.
+                This device is not authorized. Registration and queue board are only available on the designated computer at the registrar&apos;s office.
               </div>
             </div>
           </div>

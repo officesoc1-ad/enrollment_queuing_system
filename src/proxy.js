@@ -29,8 +29,8 @@ export function proxy(request) {
   const kioskToken = request.cookies.get('kiosk_token')?.value;
   const isKioskAuthorized = isValidKioskToken(kioskToken);
 
-  // Block registration page if device is not authorized
-  if (pathname.startsWith('/register') && !isKioskAuthorized) {
+  // Block registration page and queue board if device is not authorized
+  if ((pathname.startsWith('/register') || pathname === '/queue') && !isKioskAuthorized) {
     return NextResponse.redirect(new URL('/?kiosk=unauthorized', request.url));
   }
 

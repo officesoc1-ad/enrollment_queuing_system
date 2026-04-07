@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
 
 export default function StudentPOVPage() {
   const { id } = useParams();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const intervalRef = useRef(null);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -17,6 +18,7 @@ export default function StudentPOVPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setStatus(data);
+      setLastUpdated(new Date());
     } catch (err) {
       setError(err.message);
     } finally {
@@ -27,26 +29,20 @@ export default function StudentPOVPage() {
   useEffect(() => {
     fetchStatus();
 
-    // Subscribe to real-time updates for queue_configs and queue_entries
-    const configChannel = supabase
-      .channel('student-queue-config')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_configs' }, () => {
-        fetchStatus();
-      })
-      .subscribe();
-
-    const entryChannel = supabase
-      .channel('student-queue-entries')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_entries' }, () => {
-        fetchStatus();
-      })
-      .subscribe();
+    // Auto-refresh every 30 seconds instead of Supabase Realtime
+    intervalRef.current = setInterval(fetchStatus, 30_000);
 
     return () => {
-      supabase.removeChannel(configChannel);
-      supabase.removeChannel(entryChannel);
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [fetchStatus]);
+
+  // Stop polling once the student's queue entry reaches a terminal state
+  useEffect(() => {
+    if (status?.entry?.status === 'completed' || status?.entry?.status === 'skipped') {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    }
+  }, [status]);
 
   if (loading) {
     return (
@@ -85,6 +81,11 @@ export default function StudentPOVPage() {
   const isCompleted = entry.status === 'completed';
   const isSkipped = entry.status === 'skipped';
 
+  const formatLastUpdated = () => {
+    if (!lastUpdated) return '';
+    return lastUpdated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+  };
+
   return (
     <>
       <section className="page-header">
@@ -99,6 +100,25 @@ export default function StudentPOVPage() {
       </section>
 
       <div className="container" style={{ maxWidth: '600px' }}>
+        {/* Auto-refresh notice */}
+        {entry.status === 'waiting' && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 16px',
+            marginBottom: '16px',
+            borderRadius: '8px',
+            background: '#f0f9ff',
+            border: '1px solid #bae6fd',
+            fontSize: '0.8125rem',
+            color: '#0369a1'
+          }}>
+            <span>🔄 Auto-refreshes every 30 seconds</span>
+            <span style={{ color: '#6b7280' }}>Last: {formatLastUpdated()}</span>
+          </div>
+        )}
+
         {/* Queue Number Card */}
         <div className="card" style={{ marginBottom: '24px' }}>
           <div className="queue-number-display">
@@ -124,7 +144,7 @@ export default function StudentPOVPage() {
 
           {isCurrentlyServing && (
             <div className="alert alert-success" style={{ textAlign: 'center', fontSize: '1.125rem' }}>
-              🔔 <strong>It's your turn! Please proceed to the registrar now.</strong>
+              🔔 <strong>It&apos;s your turn! Please proceed to the registrar now.</strong>
             </div>
           )}
 
