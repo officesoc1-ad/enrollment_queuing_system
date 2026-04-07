@@ -20,7 +20,7 @@ const MODE_RULES = {
   // admin mode has no restrictions
 };
 
-export function middleware(request) {
+export function proxy(request) {
   const mode = process.env.NEXT_PUBLIC_TERMINAL_MODE;
   const { pathname } = request.nextUrl;
 

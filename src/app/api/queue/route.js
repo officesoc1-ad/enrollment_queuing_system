@@ -1,28 +1,12 @@
 import { NextResponse } from 'next/server';
 import queueController from '@/controllers/queueController';
 import { validate, joinQueueSchema } from '@/lib/validators';
-import { createRateLimiter, getClientIp } from '@/lib/rateLimiter';
 
 export const dynamic = 'force-dynamic';
-
-// Rate limit: 2 registrations per 10 seconds per IP
-const limiter = createRateLimiter({ maxRequests: 2, windowMs: 10_000 });
 
 // POST /api/queue — Register a student in the queue (public, rate limited)
 export async function POST(request) {
   try {
-    // Check rate limit
-    const ip = getClientIp(request);
-    const { allowed, retryAfterMs } = limiter(ip);
-    if (!allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please wait a few seconds before trying again.' },
-        { 
-          status: 429,
-          headers: { 'Retry-After': String(Math.ceil(retryAfterMs / 1000)) }
-        }
-      );
-    }
 
     const body = await request.json();
 
