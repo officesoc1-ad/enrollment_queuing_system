@@ -339,23 +339,30 @@ export default function AdminDashboardPage() {
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       
       const savedSchedule = await res.json();
-      await fetchAll();
+
+      // Optimistic state update — no extra DB call needed
+      if (editingSchedule) {
+        setSchedules(prev => prev.map(s => s.id === editingSchedule.id ? savedSchedule : s));
+      } else {
+        setSchedules(prev => [...prev, savedSchedule]);
+      }
+
       showToast(editingSchedule ? 'Schedule updated' : 'Schedule created');
       setShowScheduleModal(false);
 
       if (!editingSchedule) {
+        // Fetch queues only (lightweight) to pick up the new queue config
         setActiveTab('queues');
-        try {
-          const qRes = await authFetch('/api/queue');
-          const finalQueues = await qRes.json();
-          const newlyCreated = finalQueues.find(q => q.schedule_id === savedSchedule.id);
+        await fetchQueuesOnly();
+        // Select the newly created queue
+        setQueues(current => {
+          const newlyCreated = current.find(q => q.schedule_id === savedSchedule.id);
           if (newlyCreated) {
             setSelectedQueue(newlyCreated);
             fetchQueueEntries(newlyCreated);
           }
-        } catch (e) {
-          // Ignore silently
-        }
+          return current;
+        });
       }
 
       setEditingSchedule(null);
@@ -375,7 +382,11 @@ export default function AdminDashboardPage() {
     try {
       const res = await authFetch(`/api/schedules/${id}`, { method: 'DELETE' });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      await fetchAll();
+
+      // Optimistic state update
+      setSchedules(prev => prev.filter(s => s.id !== id));
+      // Queues may have changed too (cascade delete)
+      await fetchQueuesOnly();
       showToast('Schedule deleted');
     } catch (err) {
       showToast(err.message || 'Failed to delete schedule', 'error');
@@ -390,7 +401,11 @@ export default function AdminDashboardPage() {
         body: JSON.stringify(courseForm)
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      await fetchAll();
+
+      // Optimistic state update
+      const savedCourse = await res.json();
+      setCourses(prev => [...prev, savedCourse]);
+
       showToast('Course created');
       setShowCourseModal(false);
       setCourseForm({ code: '', name: '' });
@@ -404,7 +419,13 @@ export default function AdminDashboardPage() {
     try {
       const res = await authFetch(`/api/courses/${id}`, { method: 'DELETE' });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      await fetchAll();
+
+      // Optimistic state update
+      setCourses(prev => prev.filter(c => c.id !== id));
+      // Schedules tied to this course may have been cascade-deleted
+      setSchedules(prev => prev.filter(s => s.course_id !== id));
+      await fetchQueuesOnly();
+
       showToast('Course deleted');
     } catch (err) {
       showToast(err.message || 'Failed to delete course', 'error');
