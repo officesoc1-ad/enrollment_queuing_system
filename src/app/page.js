@@ -42,7 +42,7 @@ export default async function HomePage({ searchParams }) {
                 Access Restricted
               </div>
               <div style={{ fontSize: '0.85rem', color: '#b91c1c', marginTop: '2px' }}>
-                This device is not authorized. Registration and queue board are only available on the designated computer at the registrar&apos;s office.
+                This device is not authorized. Registration and queue board are only available on the designated computer at the encoding room.
               </div>
             </div>
           </div>

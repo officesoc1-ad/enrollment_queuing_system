@@ -138,13 +138,13 @@ export default function StudentPOVPage() {
 
           {isSkipped && (
             <div className="alert alert-warning" style={{ textAlign: 'center' }}>
-              ⏭️ <strong>You have been skipped.</strong> Please proceed to the registrar for assistance.
+              ⏭️ <strong>You have been skipped.</strong> Please proceed to the encoding room for assistance.
             </div>
           )}
 
           {isCurrentlyServing && (
             <div className="alert alert-success" style={{ textAlign: 'center', fontSize: '1.125rem' }}>
-              🔔 <strong>It&apos;s your turn! Please proceed to the registrar now.</strong>
+              🔔 <strong>It&apos;s your turn! Please proceed to the encoding room now.</strong>
             </div>
           )}
 
