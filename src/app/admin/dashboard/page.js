@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { fetchQueuesDirectly, fetchQueueEntriesDirectly } from '@/lib/supabase-client';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -109,7 +110,7 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
-  // Targeted re-fetch to save bandwidth
+  // Targeted re-fetch via API (used after write operations for consistency)
   const fetchQueuesOnly = useCallback(async () => {
     try {
       const res = await fetch('/api/queue', { cache: 'no-store' });
@@ -117,6 +118,30 @@ export default function AdminDashboardPage() {
       setQueues(data);
     } catch (err) {
       console.error('Failed to fetch queues:', err);
+    }
+  }, []);
+
+  // Direct Supabase reads — no Vercel invocations (used by Realtime handler)
+  const fetchQueuesRealtime = useCallback(async () => {
+    try {
+      const data = await fetchQueuesDirectly();
+      setQueues(data);
+    } catch (err) {
+      console.error('Failed to refresh queues from Supabase:', err);
+    }
+  }, []);
+
+  const fetchQueueEntriesRealtime = useCallback(async (config) => {
+    try {
+      const data = await fetchQueueEntriesDirectly({
+        schedule_id: config.schedule_id,
+        course_id: config.course_id,
+        year_level: config.year_level,
+        enrollment_type: config.enrollment_type
+      });
+      setQueueEntries(data);
+    } catch (err) {
+      console.error('Failed to refresh entries from Supabase:', err);
     }
   }, []);
 
@@ -139,13 +164,13 @@ export default function AdminDashboardPage() {
     selectedQueueRef.current = selectedQueue;
   }, [selectedQueue]);
 
-  // Real-time subscriptions (Debounced)
+  // Real-time subscriptions (Debounced) — reads directly from Supabase
   useEffect(() => {
     const handleRealtimeChange = () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
       debounceTimer.current = setTimeout(() => {
-        fetchQueuesOnly();
-        if (selectedQueueRef.current) fetchQueueEntries(selectedQueueRef.current);
+        fetchQueuesRealtime();
+        if (selectedQueueRef.current) fetchQueueEntriesRealtime(selectedQueueRef.current);
       }, 300); // 300ms quiet period before fetching
     };
 
@@ -159,7 +184,7 @@ export default function AdminDashboardPage() {
       supabase.removeChannel(channel);
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, [fetchQueuesOnly]);
+  }, [fetchQueuesRealtime, fetchQueueEntriesRealtime]);
 
   const fetchQueueEntries = async (config) => {
     try {

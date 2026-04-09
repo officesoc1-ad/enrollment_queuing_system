@@ -29,11 +29,28 @@ export default function StudentPOVPage() {
   useEffect(() => {
     fetchStatus();
 
-    // Auto-refresh every 30 seconds instead of Supabase Realtime
-    intervalRef.current = setInterval(fetchStatus, 30_000);
+    // Poll every 60 seconds — saves Vercel invocations vs 30s
+    const POLL_INTERVAL = 60_000;
+    intervalRef.current = setInterval(fetchStatus, POLL_INTERVAL);
+
+    // Visibility API: stop polling when tab is hidden, resume when visible
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Tab hidden — stop wasting invocations
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      } else {
+        // Tab visible again — refresh immediately and restart polling
+        fetchStatus();
+        intervalRef.current = setInterval(fetchStatus, POLL_INTERVAL);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [fetchStatus]);
 
@@ -114,7 +131,7 @@ export default function StudentPOVPage() {
             fontSize: '0.8125rem',
             color: '#0369a1'
           }}>
-            <span>🔄 Auto-refreshes every 30 seconds</span>
+            <span>🔄 Auto-refreshes every 60 seconds{document.hidden ? ' (paused)' : ''}</span>
             <span style={{ color: '#6b7280' }}>Last: {formatLastUpdated()}</span>
           </div>
         )}

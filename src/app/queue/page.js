@@ -1,14 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import { fetchQueuesDirectly } from '@/lib/supabase-client';
 import InteractiveParticles from '@/components/InteractiveParticles';
 
 export default function QueueBoardPage() {
   const [queues, setQueues] = useState([]);
   const [loading, setLoading] = useState(true);
+  const debounceTimer = useRef(null);
 
-  const fetchQueues = useCallback(async () => {
+  // Initial load via API (one-time Vercel invocation)
+  const fetchQueuesInitial = useCallback(async () => {
     try {
       const res = await fetch('/api/queue');
       const data = await res.json();
@@ -20,29 +23,36 @@ export default function QueueBoardPage() {
     }
   }, []);
 
+  // Realtime refresh — reads directly from Supabase, no Vercel invocation
+  const fetchQueuesRealtime = useCallback(async () => {
+    try {
+      const data = await fetchQueuesDirectly();
+      setQueues(data);
+    } catch (err) {
+      console.error('Failed to refresh queues from Supabase:', err);
+    }
+  }, []);
+
   useEffect(() => {
-    fetchQueues();
+    fetchQueuesInitial();
 
-    // Real-time subscriptions
-    const configChannel = supabase
-      .channel('board-queue-config')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_configs' }, () => {
-        fetchQueues();
-      })
-      .subscribe();
+    // Real-time subscriptions — debounced, reads directly from Supabase
+    const handleRealtimeChange = () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      debounceTimer.current = setTimeout(fetchQueuesRealtime, 300);
+    };
 
-    const entryChannel = supabase
-      .channel('board-queue-entries')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_entries' }, () => {
-        fetchQueues();
-      })
+    const channel = supabase
+      .channel('board-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_configs' }, handleRealtimeChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_entries' }, handleRealtimeChange)
       .subscribe();
 
     return () => {
-      supabase.removeChannel(configChannel);
-      supabase.removeChannel(entryChannel);
+      supabase.removeChannel(channel);
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, [fetchQueues]);
+  }, [fetchQueuesInitial, fetchQueuesRealtime]);
 
   const yearSuffix = (y) => ['', '1st', '2nd', '3rd', '4th'][y] || `${y}th`;
   const typeLabel = (t) => t === 'block_section' ? 'Block Section' : 'Irregular';
