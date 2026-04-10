@@ -104,11 +104,11 @@ export default function AdminDashboardPage() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const opts = { cache: 'no-store' };
+      const t = Date.now();
       const [qRes, sRes, cRes] = await Promise.all([
-        fetch('/api/queue', opts),
-        fetch('/api/schedules', opts),
-        fetch('/api/courses', opts)
+        fetch(`/api/queue?t=${t}`, { cache: 'no-store' }),
+        fetch(`/api/schedules?t=${t}`, { cache: 'no-store' }),
+        fetch(`/api/courses?t=${t}`, { cache: 'no-store' })
       ]);
       setQueues(await qRes.json());
       setSchedules(await sRes.json());
@@ -121,7 +121,7 @@ export default function AdminDashboardPage() {
   // Targeted re-fetch via API (used after write operations for consistency)
   const fetchQueuesOnly = useCallback(async () => {
     try {
-      const res = await fetch('/api/queue', { cache: 'no-store' });
+      const res = await fetch(`/api/queue?t=${Date.now()}`, { cache: 'no-store' });
       const data = await res.json();
       setQueues(data);
     } catch (err) {
@@ -202,7 +202,7 @@ export default function AdminDashboardPage() {
         year_level: config.year_level,
         enrollment_type: config.enrollment_type
       });
-      const res = await fetch(`/api/queue-entries?${params}`);
+      const res = await fetch(`/api/queue-entries?${params}&t=${Date.now()}`);
       const data = await res.json();
       setQueueEntries(data);
     } catch (err) {
@@ -412,17 +412,18 @@ export default function AdminDashboardPage() {
 
   const handleDeleteSchedule = async (id) => {
     if (!confirm('Delete this schedule? This will also remove associated queue entries.')) return;
+    setLoadingAction(`delete-s-${id}`);
     try {
       const res = await authFetch(`/api/schedules/${id}`, { method: 'DELETE' });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
 
-      // Optimistic state update
-      setSchedules(prev => prev.filter(s => s.id !== id));
-      // Queues may have changed too (cascade delete)
-      await fetchQueuesOnly();
+      // Wait for cache to potentially invalidate or just force a fresh fetch
+      await fetchAll();
       showToast('Schedule deleted');
     } catch (err) {
       showToast(err.message || 'Failed to delete schedule', 'error');
+    } finally {
+      setLoadingAction(null);
     }
   };
 
@@ -449,19 +450,17 @@ export default function AdminDashboardPage() {
 
   const handleDeleteCourse = async (id) => {
     if (!confirm('Delete this course?')) return;
+    setLoadingAction(`delete-c-${id}`);
     try {
       const res = await authFetch(`/api/courses/${id}`, { method: 'DELETE' });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
 
-      // Optimistic state update
-      setCourses(prev => prev.filter(c => c.id !== id));
-      // Schedules tied to this course may have been cascade-deleted
-      setSchedules(prev => prev.filter(s => s.course_id !== id));
-      await fetchQueuesOnly();
-
+      await fetchAll();
       showToast('Course deleted');
     } catch (err) {
       showToast(err.message || 'Failed to delete course', 'error');
+    } finally {
+      setLoadingAction(null);
     }
   };
 
