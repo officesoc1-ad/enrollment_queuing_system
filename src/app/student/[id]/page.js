@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { fetchStudentStatusDirectly } from '@/lib/supabase-client';
 
 export default function StudentPOVPage() {
   const { id } = useParams();
@@ -12,11 +13,10 @@ export default function StudentPOVPage() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const intervalRef = useRef(null);
 
+  // Direct Supabase query — zero Vercel function invocations
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch(`/api/queue/${id}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const data = await fetchStudentStatusDirectly(id);
       setStatus(data);
       setLastUpdated(new Date());
     } catch (err) {
@@ -29,14 +29,14 @@ export default function StudentPOVPage() {
   useEffect(() => {
     fetchStatus();
 
-    // Poll every 60 seconds — saves Vercel invocations vs 30s
+    // Poll every 60 seconds — direct Supabase REST, no Vercel cost
     const POLL_INTERVAL = 60_000;
     intervalRef.current = setInterval(fetchStatus, POLL_INTERVAL);
 
     // Visibility API: stop polling when tab is hidden, resume when visible
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // Tab hidden — stop wasting invocations
+        // Tab hidden — stop wasting requests
         if (intervalRef.current) clearInterval(intervalRef.current);
         intervalRef.current = null;
       } else {

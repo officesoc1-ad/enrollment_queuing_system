@@ -65,3 +65,57 @@ export async function fetchQueueEntriesDirectly({ schedule_id, course_id, year_l
   if (error) throw error;
   return data;
 }
+
+/**
+ * Fetch a student's queue status directly from Supabase.
+ * Replaces polling to /api/queue/[id] — zero Vercel invocations.
+ * Returns the same shape as the API: { entry, position, aheadCount, currentServing }
+ */
+export async function fetchStudentStatusDirectly(entryId) {
+  // 1. Get the queue entry with joined course and schedule info
+  const { data: entry, error: entryError } = await supabase
+    .from('queue_entries')
+    .select(`
+      *,
+      courses:course_id (code, name),
+      enrollment_schedules:schedule_id (schedule_date, start_time, end_time, enrollment_type)
+    `)
+    .eq('id', entryId)
+    .single();
+
+  if (entryError) throw entryError;
+  if (!entry) throw new Error('Queue entry not found');
+
+  // 2. Count how many waiting entries are ahead (lower queue number)
+  const { count, error: countError } = await supabase
+    .from('queue_entries')
+    .select('*', { count: 'exact', head: true })
+    .eq('schedule_id', entry.schedule_id)
+    .eq('course_id', entry.course_id)
+    .eq('year_level', entry.year_level)
+    .eq('enrollment_type', entry.enrollment_type)
+    .eq('status', 'waiting')
+    .lt('queue_number', entry.queue_number);
+
+  if (countError) throw countError;
+
+  // 3. Get the queue config for current serving number
+  const { data: config, error: configError } = await supabase
+    .from('queue_configs')
+    .select('current_serving')
+    .eq('schedule_id', entry.schedule_id)
+    .eq('course_id', entry.course_id)
+    .eq('year_level', entry.year_level)
+    .eq('enrollment_type', entry.enrollment_type)
+    .maybeSingle();
+
+  if (configError) throw configError;
+
+  return {
+    entry,
+    position: count + 1,
+    aheadCount: count,
+    currentServing: config?.current_serving || 0
+  };
+}
+
