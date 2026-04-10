@@ -74,19 +74,36 @@ export default function RegisterPage() {
 
     setSubmitting(true);
     try {
-      // Fetch absolute strictest version of schedules by bypassing Vercel's edge cache with a timestamp
-      const schedulesRes = await fetch(`/api/schedules?t=${Date.now()}`, { cache: 'no-store' });
+      const t = Date.now();
+      // Fetch both schedules and queue configs fresh (bypass edge cache)
+      const [schedulesRes, queuesRes] = await Promise.all([
+        fetch(`/api/schedules?t=${t}`, { cache: 'no-store' }),
+        fetch(`/api/queue?t=${t}`, { cache: 'no-store' })
+      ]);
       const freshSchedules = await schedulesRes.json();
+      const freshQueues = await queuesRes.json();
 
-      // Enforce checking for an explicitly active schedule
+      // Find the matching schedule (exists for this course/year/type)
       const schedule = freshSchedules.find(
         s => s.course_id === form.course_id &&
              s.year_level === parseInt(form.year_level) &&
-             s.enrollment_type === form.enrollment_type &&
-             s.is_active === true
+             s.enrollment_type === form.enrollment_type
       );
 
       if (!schedule) {
+        throw new Error('No schedule found for your selection. Please check with the admin.');
+      }
+
+      // Check the queue config's is_active — this is the toggle the admin uses
+      const queueConfig = freshQueues.find(
+        q => q.schedule_id === schedule.id &&
+             q.course_id === form.course_id &&
+             q.year_level === parseInt(form.year_level) &&
+             q.enrollment_type === form.enrollment_type &&
+             q.is_active === true
+      );
+
+      if (!queueConfig) {
         throw new Error('This queue is currently inactive. Please wait for an admin to activate it.');
       }
       const res = await fetch('/api/queue', {
