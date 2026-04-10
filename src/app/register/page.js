@@ -72,23 +72,23 @@ export default function RegisterPage() {
       return;
     }
 
-    // Find any schedule (active or not) for this enrollment type + year level
-    const schedule = schedules.find(
-      s => s.course_id === form.course_id &&
-           s.year_level === parseInt(form.year_level) &&
-           s.enrollment_type === form.enrollment_type
-    );
-
-    if (!schedule) {
-      setError('No active schedule found for your selection.');
-      setTimeout(() => {
-        setError('');
-      }, 5000);
-      return;
-    }
-
     setSubmitting(true);
     try {
+      // Fetch the freshest schedules from the server
+      const schedulesRes = await fetch('/api/schedules', { cache: 'no-store' });
+      const freshSchedules = await schedulesRes.json();
+
+      // Enforce checking for an explicitly active schedule
+      const schedule = freshSchedules.find(
+        s => s.course_id === form.course_id &&
+             s.year_level === parseInt(form.year_level) &&
+             s.enrollment_type === form.enrollment_type &&
+             s.is_active === true
+      );
+
+      if (!schedule) {
+        throw new Error('This queue is currently inactive. Please wait for an admin to activate it.');
+      }
       const res = await fetch('/api/queue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
