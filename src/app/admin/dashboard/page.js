@@ -194,6 +194,19 @@ export default function AdminDashboardPage() {
     };
   }, [fetchQueuesRealtime, fetchQueueEntriesRealtime]);
 
+  // Polling fallback — catches new entries that Realtime may miss (e.g. RPC inserts via service role)
+  // Refreshes every 5 seconds when a queue is actively selected, reads directly from Supabase (no Vercel invocations)
+  useEffect(() => {
+    if (!selectedQueue) return;
+
+    const pollInterval = setInterval(() => {
+      fetchQueuesRealtime();
+      if (selectedQueueRef.current) fetchQueueEntriesRealtime(selectedQueueRef.current);
+    }, 5000);
+
+    return () => clearInterval(pollInterval);
+  }, [selectedQueue, fetchQueuesRealtime, fetchQueueEntriesRealtime]);
+
   const fetchQueueEntries = async (config) => {
     try {
       const params = new URLSearchParams({
