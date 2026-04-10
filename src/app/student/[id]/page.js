@@ -145,6 +145,31 @@ export default function StudentPOVPage() {
           </div>
         </div>
 
+        {/* Tip: Save your queue number */}
+        {entry.status === 'waiting' && (
+          <div style={{
+            marginBottom: '24px',
+            padding: '16px 20px',
+            borderRadius: '12px',
+            border: '2px solid #93c5fd',
+            background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px'
+          }}>
+            <span style={{ fontSize: '1.5rem', flexShrink: 0 }}>📸</span>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1e40af', marginBottom: '4px' }}>
+                Save your queue number!
+              </div>
+              <div style={{ fontSize: '0.85rem', color: '#1d4ed8', lineHeight: 1.5 }}>
+                Take a <strong>screenshot or photo</strong> of this page for your reference.
+                You can also check your queue status anytime by visiting the website and using the <strong>Find Queue</strong> page with your Student ID.
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Status Card */}
         <div className="card" style={{ marginBottom: '24px' }}>
           {isCompleted && (
