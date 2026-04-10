@@ -1,15 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import InteractiveParticles from '@/components/InteractiveParticles';
+import Turnstile from '@/components/Turnstile';
 
 export default function TrackPage() {
   const router = useRouter();
   const [studentId, setStudentId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
+
+  const handleTurnstileVerify = useCallback((token) => {
+    setTurnstileToken(token);
+  }, []);
+
+  const handleTurnstileExpire = useCallback(() => {
+    setTurnstileToken('');
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,12 +32,20 @@ export default function TrackPage() {
       setError('Student ID must be exactly 8 digits');
       return;
     }
+    if (!turnstileToken) {
+      setError('Please complete the bot verification');
+      return;
+    }
 
     setLoading(true);
     setError('');
 
     try {
-      const res = await fetch(`/api/track?student_id=${encodeURIComponent(studentId.trim())}`);
+      const params = new URLSearchParams({
+        student_id: studentId.trim(),
+        turnstile_token: turnstileToken
+      });
+      const res = await fetch(`/api/track?${params}`);
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.error);
@@ -35,6 +54,9 @@ export default function TrackPage() {
       router.push(`/student/${data.id}`);
     } catch (err) {
       setError(err.message);
+      // Reset Turnstile for retry
+      setTurnstileToken('');
+      setTurnstileResetKey(k => k + 1);
     } finally {
       setLoading(false);
     }
@@ -76,13 +98,21 @@ export default function TrackPage() {
               />
             </div>
 
+            {/* Cloudflare Turnstile bot protection */}
+            <Turnstile
+              siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+              onVerify={handleTurnstileVerify}
+              onExpire={handleTurnstileExpire}
+              resetKey={turnstileResetKey}
+            />
+
             <button
               type="submit"
               className="btn btn-primary btn-lg"
               style={{ width: '100%', marginTop: '16px' }}
-              disabled={loading}
+              disabled={loading || !turnstileToken}
             >
-              {loading ? 'Searching...' : 'Find Queue'}
+              {loading ? 'Searching...' : !turnstileToken ? 'Verifying...' : 'Find Queue'}
             </button>
           </form>
 

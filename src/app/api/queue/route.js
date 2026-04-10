@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import queueController from '@/controllers/queueController';
 import { validate, joinQueueSchema } from '@/lib/validators';
+import { verifyTurnstile } from '@/lib/turnstile';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/queue — Register a student in the queue (public, rate limited)
+// POST /api/queue — Register a student in the queue (public, rate limited + Turnstile)
 export async function POST(request) {
   try {
 
@@ -15,7 +16,17 @@ export async function POST(request) {
       return NextResponse.json({ error: parsed.error }, { status: 400 });
     }
 
-    const entry = await queueController.registerStudent(parsed.data);
+    // Verify Turnstile token before processing
+    try {
+      await verifyTurnstile(parsed.data.turnstileToken);
+    } catch (err) {
+      return NextResponse.json({ error: err.message }, { status: 403 });
+    }
+
+    // Strip the turnstile token before passing to the controller
+    const { turnstileToken, ...registrationData } = parsed.data;
+
+    const entry = await queueController.registerStudent(registrationData);
     return NextResponse.json(entry, { status: 201 });
   } catch (error) {
     // Handle duplicate registration — redirect student to their existing queue

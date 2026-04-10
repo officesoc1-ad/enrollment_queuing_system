@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import InteractiveParticles from '@/components/InteractiveParticles';
+import Turnstile from '@/components/Turnstile';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -11,6 +12,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
 
   const [form, setForm] = useState({
     student_name: '',
@@ -50,11 +53,24 @@ export default function RegisterPage() {
     setError('');
   };
 
+  const handleTurnstileVerify = useCallback((token) => {
+    setTurnstileToken(token);
+  }, []);
+
+  const handleTurnstileExpire = useCallback(() => {
+    setTurnstileToken('');
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!form.student_name || !form.student_id || !form.course_id || !form.year_level) {
       setError('All fields are required');
+      return;
+    }
+
+    if (!turnstileToken) {
+      setError('Please complete the bot verification');
       return;
     }
 
@@ -85,7 +101,8 @@ export default function RegisterPage() {
           year_level: parseInt(form.year_level),
           enrollment_type: form.enrollment_type,
           student_name: form.student_name,
-          student_id: form.student_id
+          student_id: form.student_id,
+          turnstileToken
         })
       });
 
@@ -103,6 +120,9 @@ export default function RegisterPage() {
       router.push(`/student/${data.id}`);
     } catch (err) {
       setError(err.message);
+      // Reset Turnstile so user gets a fresh token for retry
+      setTurnstileToken('');
+      setTurnstileResetKey(k => k + 1);
       setTimeout(() => setError(''), 5000);
     } finally {
       setSubmitting(false);
@@ -231,15 +251,21 @@ export default function RegisterPage() {
               </div>
             </div>
 
-
+            {/* Cloudflare Turnstile bot protection */}
+            <Turnstile
+              siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+              onVerify={handleTurnstileVerify}
+              onExpire={handleTurnstileExpire}
+              resetKey={turnstileResetKey}
+            />
 
             <button
               type="submit"
               className="btn btn-primary btn-lg"
               style={{ width: '100%' }}
-              disabled={submitting}
+              disabled={submitting || !turnstileToken}
             >
-              {submitting ? 'Registering...' : 'Join Queue'}
+              {submitting ? 'Registering...' : !turnstileToken ? 'Verifying...' : 'Join Queue'}
             </button>
           </form>
         </div>

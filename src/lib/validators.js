@@ -28,7 +28,8 @@ export const joinQueueSchema = z.object({
   year_level: z.number().int().min(1).max(4),
   enrollment_type: z.enum(['block_section', 'irregular']),
   student_name: z.string().min(1, 'Student name is required').max(100),
-  student_id: z.string().regex(/^\d{8}$/, 'Student ID must be exactly 8 digits')
+  student_id: z.string().regex(/^\d{8}$/, 'Student ID must be exactly 8 digits'),
+  turnstileToken: z.string().min(1, 'Bot verification is required')
 });
 
 // Queue management validation
