@@ -46,6 +46,14 @@ export default function AdminDashboardPage() {
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
 
+  // Admin management states
+  const [admins, setAdmins] = useState([]);
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [showDeleteAdminModal, setShowDeleteAdminModal] = useState(false);
+  const [adminForm, setAdminForm] = useState({ email: '', password: '', currentPassword: '' });
+  const [deleteAdminTarget, setDeleteAdminTarget] = useState(null);
+  const [deleteAdminPassword, setDeleteAdminPassword] = useState('');
+
   // Auth check + auto-refresh listener
   useEffect(() => {
     // Get initial session
@@ -457,6 +465,73 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // === Admin Management Handlers ===
+  const fetchAdmins = useCallback(async () => {
+    try {
+      const res = await authFetch('/api/admins');
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      const data = await res.json();
+      setAdmins(data);
+    } catch (err) {
+      console.error('Failed to fetch admins:', err);
+    }
+  }, [authFetch]);
+
+  useEffect(() => {
+    if (session && activeTab === 'admins') {
+      fetchAdmins();
+    }
+  }, [session, activeTab, fetchAdmins]);
+
+  const handleCreateAdmin = async (e) => {
+    e.preventDefault();
+    setLoadingAction('create-admin');
+    try {
+      const res = await authFetch('/api/admins', {
+        method: 'POST',
+        body: JSON.stringify(adminForm)
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      const newAdmin = await res.json();
+      setAdmins(prev => [...prev, newAdmin]);
+      showToast('Admin created successfully');
+      setShowAdminModal(false);
+      setAdminForm({ email: '', password: '', currentPassword: '' });
+    } catch (err) {
+      showToast(err.message || 'Failed to create admin', 'error');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const openDeleteAdmin = (admin) => {
+    setDeleteAdminTarget(admin);
+    setDeleteAdminPassword('');
+    setShowDeleteAdminModal(true);
+  };
+
+  const handleDeleteAdmin = async (e) => {
+    e.preventDefault();
+    if (!deleteAdminTarget) return;
+    setLoadingAction('delete-admin');
+    try {
+      const res = await authFetch(`/api/admins/${deleteAdminTarget.id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ currentPassword: deleteAdminPassword })
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      setAdmins(prev => prev.filter(a => a.id !== deleteAdminTarget.id));
+      showToast('Admin deleted successfully');
+      setShowDeleteAdminModal(false);
+      setDeleteAdminTarget(null);
+      setDeleteAdminPassword('');
+    } catch (err) {
+      showToast(err.message || 'Failed to delete admin', 'error');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
   const openEditSchedule = (schedule) => {
     setEditingSchedule(schedule);
     setScheduleForm({
@@ -651,13 +726,13 @@ export default function AdminDashboardPage() {
 
         {/* Tabs */}
         <div className="tabs">
-          {['queues', 'schedules', 'courses'].map(tab => (
+          {['queues', 'schedules', 'courses', 'admins'].map(tab => (
             <button
               key={tab}
               className={`tab ${activeTab === tab ? 'active' : ''}`}
               onClick={() => setActiveTab(tab)}
             >
-              {tab === 'queues' ? '📋 Queue Management' : tab === 'schedules' ? '📅 Schedules' : '📚 Courses'}
+              {tab === 'queues' ? '📋 Queue Management' : tab === 'schedules' ? '📅 Schedules' : tab === 'courses' ? '📚 Courses' : '👥 Admins'}
             </button>
           ))}
         </div>
@@ -955,6 +1030,75 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         )}
+
+        {/* ===== ADMINS TAB ===== */}
+        {activeTab === 'admins' && (
+          <div className="card">
+            <div className="card-header">
+              <h3 className="card-title">Admin Users</h3>
+              <button className="btn btn-primary" onClick={() => {
+                setAdminForm({ email: '', password: '', currentPassword: '' });
+                setShowAdminModal(true);
+              }}>
+                + Add Admin
+              </button>
+            </div>
+            <div className="table-wrapper">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Email</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {admins.length === 0 ? (
+                    <tr>
+                      <td colSpan="3" style={{ textAlign: 'center', color: '#9ca3af', padding: '24px' }}>
+                        No admin users found
+                      </td>
+                    </tr>
+                  ) : (
+                    admins.map(a => (
+                      <tr key={a.id}>
+                        <td style={{ fontWeight: 600 }}>
+                          {a.email}
+                          {a.id === session?.user?.id && (
+                            <span style={{
+                              marginLeft: '8px',
+                              fontSize: '0.7rem',
+                              padding: '2px 8px',
+                              borderRadius: '999px',
+                              background: 'linear-gradient(135deg, var(--primary-100), var(--primary-200))',
+                              color: 'var(--primary-700)',
+                              fontWeight: 700
+                            }}>You</span>
+                          )}
+                        </td>
+                        <td style={{ fontSize: '0.8125rem', color: '#6b7280' }}>
+                          {new Date(a.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </td>
+                        <td>
+                          {a.id === session?.user?.id ? (
+                            <span style={{ fontSize: '0.8125rem', color: '#9ca3af', fontStyle: 'italic' }}>Current account</span>
+                          ) : (
+                            <button
+                              className="btn btn-danger btn-sm"
+                              onClick={() => openDeleteAdmin(a)}
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ===== SCHEDULE MODAL ===== */}
@@ -1084,6 +1228,131 @@ export default function AdminDashboardPage() {
                 </button>
                 <button type="submit" className="btn btn-primary">
                   Add Course
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===== CREATE ADMIN MODAL ===== */}
+      {showAdminModal && (
+        <div className="modal-overlay" onClick={() => setShowAdminModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h2 className="modal-title">Create Admin User</h2>
+            <form onSubmit={handleCreateAdmin}>
+              <div className="form-group">
+                <label className="form-label">New Admin Email</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  placeholder="newadmin@hau.edu.ph"
+                  value={adminForm.email}
+                  onChange={e => setAdminForm(f => ({ ...f, email: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">New Admin Password</label>
+                <input
+                  type="password"
+                  className="form-input"
+                  placeholder="Min. 6 characters"
+                  value={adminForm.password}
+                  onChange={e => setAdminForm(f => ({ ...f, password: e.target.value }))}
+                  minLength={6}
+                  required
+                />
+              </div>
+              <div style={{
+                margin: '20px 0 16px',
+                padding: '16px',
+                borderRadius: '10px',
+                border: '2px solid #fbbf24',
+                background: 'linear-gradient(135deg, #fffbeb, #fef3c7)'
+              }}>
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#92400e', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  🔒 Identity Confirmation
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#a16207', marginBottom: '12px' }}>
+                  Enter YOUR current password to confirm this action.
+                </div>
+                <input
+                  type="password"
+                  className="form-input"
+                  placeholder="Your current password"
+                  value={adminForm.currentPassword}
+                  onChange={e => setAdminForm(f => ({ ...f, currentPassword: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAdminModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={loadingAction === 'create-admin'}>
+                  {loadingAction === 'create-admin' ? 'Creating...' : 'Create Admin'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===== DELETE ADMIN MODAL ===== */}
+      {showDeleteAdminModal && deleteAdminTarget && (
+        <div className="modal-overlay" onClick={() => setShowDeleteAdminModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h2 className="modal-title" style={{ color: '#dc2626' }}>Delete Admin User</h2>
+            <form onSubmit={handleDeleteAdmin}>
+              <div style={{
+                padding: '16px',
+                borderRadius: '10px',
+                border: '2px solid #fca5a5',
+                background: 'linear-gradient(135deg, #fef2f2, #fee2e2)',
+                marginBottom: '20px'
+              }}>
+                <div style={{ fontSize: '0.9rem', color: '#991b1b', fontWeight: 600, marginBottom: '4px' }}>
+                  ⚠️ You are about to permanently delete:
+                </div>
+                <div style={{ fontSize: '1rem', fontWeight: 700, color: '#7f1d1d' }}>
+                  {deleteAdminTarget.email}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#b91c1c', marginTop: '8px' }}>
+                  This action cannot be undone. The admin will lose all access immediately.
+                </div>
+              </div>
+              <div style={{
+                padding: '16px',
+                borderRadius: '10px',
+                border: '2px solid #fbbf24',
+                background: 'linear-gradient(135deg, #fffbeb, #fef3c7)'
+              }}>
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#92400e', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  🔒 Identity Confirmation
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#a16207', marginBottom: '12px' }}>
+                  Enter YOUR current password to confirm deletion.
+                </div>
+                <input
+                  type="password"
+                  className="form-input"
+                  placeholder="Your current password"
+                  value={deleteAdminPassword}
+                  onChange={e => setDeleteAdminPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="modal-actions" style={{ marginTop: '20px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteAdminModal(false)}>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-danger"
+                  disabled={loadingAction === 'delete-admin'}
+                >
+                  {loadingAction === 'delete-admin' ? 'Deleting...' : '🗑️ Confirm Delete'}
                 </button>
               </div>
             </form>
