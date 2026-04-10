@@ -858,58 +858,65 @@ export default function AdminDashboardPage() {
                   </div>
 
                   {/* Queue entries table */}
-                  <div className="table-wrapper">
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>#</th>
-                          <th>Student</th>
-                          <th>ID</th>
-                          <th>Status</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {queueEntries.length === 0 ? (
+                  <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                    <div className="table-wrapper">
+                      <table className="table">
+                        <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                           <tr>
-                            <td colSpan="5" style={{ textAlign: 'center', color: '#9ca3af', padding: '24px' }}>
-                              No entries in this queue
-                            </td>
+                            <th>#</th>
+                            <th>Student</th>
+                            <th>ID</th>
+                            <th>Status</th>
+                            <th>Actions</th>
                           </tr>
-                        ) : (
-                          queueEntries.map(entry => (
-                            <tr key={entry.id}>
-                              <td style={{ fontWeight: 700 }}>{entry.queue_number}</td>
-                              <td>{entry.student_name}</td>
-                              <td style={{ fontSize: '0.8125rem', color: '#6b7280' }}>{entry.student_id}</td>
-                              <td>
-                                <span className={`badge badge-${entry.status}`}>{entry.status}</span>
-                              </td>
-                              <td>
-                                {entry.status === 'serving' && (
-                                  <div style={{ display: 'flex', gap: '4px' }}>
-                                    <button
-                                      className="btn btn-success btn-sm"
-                                      onClick={() => handleStatusChange(entry.id, 'complete')}
-                                      disabled={loadingAction === `complete-${entry.id}`}
-                                    >
-                                      {loadingAction === `complete-${entry.id}` ? '...' : '✓ Done'}
-                                    </button>
-                                    <button
-                                      className="btn btn-warning btn-sm"
-                                      onClick={() => handleStatusChange(entry.id, 'skip')}
-                                      disabled={loadingAction === `skip-${entry.id}`}
-                                    >
-                                      {loadingAction === `skip-${entry.id}` ? '...' : 'Skip'}
-                                    </button>
-                                  </div>
-                                )}
+                        </thead>
+                        <tbody>
+                          {queueEntries.length === 0 ? (
+                            <tr>
+                              <td colSpan="5" style={{ textAlign: 'center', color: '#9ca3af', padding: '24px' }}>
+                                No entries in this queue
                               </td>
                             </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+                          ) : (
+                            [...queueEntries]
+                              .sort((a, b) => {
+                                const order = { serving: 0, waiting: 1, skipped: 2, completed: 3 };
+                                return (order[a.status] ?? 4) - (order[b.status] ?? 4);
+                              })
+                              .map(entry => (
+                              <tr key={entry.id}>
+                                <td style={{ fontWeight: 700 }}>{entry.queue_number}</td>
+                                <td>{entry.student_name}</td>
+                                <td style={{ fontSize: '0.8125rem', color: '#6b7280' }}>{entry.student_id}</td>
+                                <td>
+                                  <span className={`badge badge-${entry.status}`}>{entry.status}</span>
+                                </td>
+                                <td>
+                                  {entry.status === 'serving' && (
+                                    <div style={{ display: 'flex', gap: '4px' }}>
+                                      <button
+                                        className="btn btn-success btn-sm"
+                                        onClick={() => handleStatusChange(entry.id, 'complete')}
+                                        disabled={loadingAction === `complete-${entry.id}`}
+                                      >
+                                        {loadingAction === `complete-${entry.id}` ? '...' : '✓ Done'}
+                                      </button>
+                                      <button
+                                        className="btn btn-warning btn-sm"
+                                        onClick={() => handleStatusChange(entry.id, 'skip')}
+                                        disabled={loadingAction === `skip-${entry.id}`}
+                                      >
+                                        {loadingAction === `skip-${entry.id}` ? '...' : 'Skip'}
+                                      </button>
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               ) : (
