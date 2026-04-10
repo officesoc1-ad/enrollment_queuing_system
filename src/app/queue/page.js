@@ -91,9 +91,9 @@ export default function QueueBoardPage() {
         {Object.keys(grouped).length === 0 ? (
           <div className="card empty-state">
             <div className="empty-state-icon">📭</div>
-            <p className="empty-state-text">No active queues at the moment</p>
+            <p className="empty-state-text">No queues at the moment</p>
             <p style={{ color: '#9ca3af', marginTop: '8px', fontSize: '0.875rem' }}>
-              Queues will appear here once the admin activates enrollment schedules.
+              Queues will appear here once the admin creates enrollment schedules.
             </p>
           </div>
         ) : (
@@ -110,16 +110,9 @@ export default function QueueBoardPage() {
                   .sort((a, b) => a.year_level - b.year_level)
                   .map(q => (
                     <div key={q.id} className="card" style={{
-                      borderTop: q.is_active ? '4px solid #10b981' : '4px solid #e5e7eb',
+                      borderTop: '4px solid #10b981',
                       textAlign: 'center'
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
-                        {q.is_active && <span className="pulse-dot"></span>}
-                        <span className={`badge ${q.is_active ? 'badge-active' : 'badge-inactive'}`}>
-                          {q.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-
                       <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#374151', marginBottom: '4px' }}>
                         {yearSuffix(q.year_level)} Year
                       </h3>

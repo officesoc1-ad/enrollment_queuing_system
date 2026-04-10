@@ -11,16 +11,6 @@ const Schedule = {
     return data;
   },
 
-  async getActive() {
-    const { data, error } = await supabase
-      .from('enrollment_schedules')
-      .select('*, courses:course_id (code, name)')
-      .eq('is_active', true)
-      .order('start_time');
-    if (error) throw error;
-    return data;
-  },
-
   async getById(id) {
     const { data, error } = await supabase
       .from('enrollment_schedules')

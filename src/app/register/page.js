@@ -40,20 +40,6 @@ export default function RegisterPage() {
     fetchData();
   }, []);
 
-  // Get today's date strictly in Philippine Time (Asia/Manila)
-  const getPHDate = () => {
-    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
-  };
-
-  // Find matching schedule based on course, year, type, active status, AND proper timezone date
-  const matchingSchedule = schedules.find(
-    s => s.course_id === form.course_id &&
-         s.year_level === parseInt(form.year_level) &&
-         s.enrollment_type === form.enrollment_type &&
-         s.is_active &&
-         s.schedule_date === getPHDate()
-  );
-
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
     setError('');
@@ -75,13 +61,9 @@ export default function RegisterPage() {
     setSubmitting(true);
     try {
       const t = Date.now();
-      // Fetch both schedules and queue configs fresh (bypass edge cache)
-      const [schedulesRes, queuesRes] = await Promise.all([
-        fetch(`/api/schedules?t=${t}`, { cache: 'no-store' }),
-        fetch(`/api/queue?t=${t}`, { cache: 'no-store' })
-      ]);
+      // Fetch schedules fresh (bypass edge cache)
+      const schedulesRes = await fetch(`/api/schedules?t=${t}`, { cache: 'no-store' });
       const freshSchedules = await schedulesRes.json();
-      const freshQueues = await queuesRes.json();
 
       // Find the matching schedule (exists for this course/year/type)
       const schedule = freshSchedules.find(
@@ -94,18 +76,6 @@ export default function RegisterPage() {
         throw new Error('No schedule found for your selection. Please check with the admin.');
       }
 
-      // Check the queue config's is_active — this is the toggle the admin uses
-      const queueConfig = freshQueues.find(
-        q => q.schedule_id === schedule.id &&
-             q.course_id === form.course_id &&
-             q.year_level === parseInt(form.year_level) &&
-             q.enrollment_type === form.enrollment_type &&
-             q.is_active === true
-      );
-
-      if (!queueConfig) {
-        throw new Error('This queue is currently inactive. Please wait for an admin to activate it.');
-      }
       const res = await fetch('/api/queue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -147,14 +117,6 @@ export default function RegisterPage() {
       </div>
     );
   }
-
-  const formatTime = (time) => {
-    const [h, m] = time.split(':');
-    const hour = parseInt(h);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-    return `${displayHour}:${m} ${ampm}`;
-  };
 
   return (
     <>

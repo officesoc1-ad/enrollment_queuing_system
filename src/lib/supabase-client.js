@@ -19,7 +19,7 @@ export async function fetchQueuesDirectly() {
     .select(`
       *,
       courses:course_id (code, name),
-      enrollment_schedules:schedule_id (schedule_date, start_time, end_time, enrollment_type, year_level, is_active)
+      enrollment_schedules:schedule_id (schedule_date, start_time, end_time, enrollment_type, year_level)
     `)
     .order('year_level');
 

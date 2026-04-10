@@ -1,10 +1,7 @@
 import Link from 'next/link';
 import InteractiveParticles from '@/components/InteractiveParticles';
 
-export default async function HomePage({ searchParams }) {
-  const params = await searchParams;
-  const kioskUnauthorized = params?.kiosk === 'unauthorized';
-
+export default async function HomePage() {
   return (
     <>
       <section className="page-header" style={{ padding: '80px 0', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
@@ -24,29 +21,6 @@ export default async function HomePage({ searchParams }) {
       </section>
 
       <div className="container" style={{ marginTop: '40px' }}>
-        {kioskUnauthorized && (
-          <div style={{
-            maxWidth: '900px',
-            margin: '0 auto 24px auto',
-            padding: '16px 20px',
-            borderRadius: '12px',
-            border: '2px solid #fca5a5',
-            background: 'linear-gradient(135deg, #fef2f2, #fee2e2)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px'
-          }}>
-            <span style={{ fontSize: '1.5rem' }}>🔒</span>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#991b1b' }}>
-                Access Restricted
-              </div>
-              <div style={{ fontSize: '0.85rem', color: '#b91c1c', marginTop: '2px' }}>
-                This device is not authorized. Registration and queue board are only available on the designated computer at the encoding room.
-              </div>
-            </div>
-          </div>
-        )}
         <div className="grid grid-3" style={{ maxWidth: '900px', margin: '0 auto' }}>
           <Link href="/register" style={{ textDecoration: 'none' }}>
             <div className="card" style={{ textAlign: 'center', cursor: 'pointer', height: '100%' }}>

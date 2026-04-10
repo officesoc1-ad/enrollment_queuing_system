@@ -78,7 +78,7 @@ export default function StudentPOVPage() {
     );
   }
 
-  const { entry, position, aheadCount, currentServing, isQueueActive } = status;
+  const { entry, position, aheadCount, currentServing } = status;
   const schedule = entry.enrollment_schedules;
   const course = entry.courses;
 
@@ -191,20 +191,11 @@ export default function StudentPOVPage() {
           )}
 
           {entry.status === 'waiting' && (
-            <>
-              {isQueueActive && schedule?.is_active ? (
-                <div className="alert alert-info" style={{ textAlign: 'center' }}>
-                  <span className="pulse-dot" style={{ marginRight: '8px' }}></span>
-                  <strong>Your year level is currently enrolling!</strong>
-                </div>
-              ) : (
-                <div className="alert alert-warning" style={{ textAlign: 'center' }}>
-                  ⏳ Your queue will start at{' '}
-                  <strong>{formatTime(schedule?.start_time)}</strong> on{' '}
-                  <strong>{schedule?.schedule_date}</strong>
-                </div>
-              )}
-            </>
+            <div className="alert alert-warning" style={{ textAlign: 'center' }}>
+              ⏳ Your enrollment is scheduled for{' '}
+              <strong>{formatTime(schedule?.start_time)}</strong> on{' '}
+              <strong>{schedule?.schedule_date}</strong>
+            </div>
           )}
         </div>
 

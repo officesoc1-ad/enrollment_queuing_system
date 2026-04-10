@@ -13,9 +13,7 @@ export const createScheduleSchema = z.object({
   end_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, 'Time must be HH:MM format')
 });
 
-export const updateScheduleSchema = createScheduleSchema.partial().extend({
-  is_active: z.boolean().optional()
-});
+export const updateScheduleSchema = createScheduleSchema.partial();
 
 // Course validation
 export const createCourseSchema = z.object({
@@ -41,14 +39,6 @@ export const callNextSchema = z.object({
 export const statusChangeSchema = z.object({
   entryId: uuid,
   action: z.enum(['complete', 'skip'], { message: 'Action must be "complete" or "skip"' })
-});
-
-// Queue config update validation
-export const updateQueueConfigSchema = z.object({
-  is_active: z.boolean().optional(),
-  current_serving: z.number().int().min(0).optional()
-}).refine(data => data.is_active !== undefined || data.current_serving !== undefined, {
-  message: 'Must provide is_active or current_serving'
 });
 
 // Helper to validate and return parsed data or error response

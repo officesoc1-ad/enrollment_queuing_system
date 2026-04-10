@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { createHmac } from 'crypto';
 import { rateLimit } from '@/lib/rate-limit';
 
 // ============================================
@@ -29,19 +28,6 @@ const RATE_LIMITS = {
   // Admin API endpoints (require auth, but still rate-limit)
   admin: { max: 40, windowMs: 60_000 },          // 40 req / 60s
 };
-
-// ============================================
-// Kiosk Cookie Validation
-// ============================================
-function isValidKioskToken(token) {
-  const secret = process.env.KIOSK_SECRET;
-  if (!secret || !token) return false;
-
-  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
-  const expected = createHmac('sha256', secret).update(`kiosk-${today}`).digest('hex');
-
-  return token === expected;
-}
 
 // ============================================
 // Helper: Create a 429 Too Many Requests response
@@ -77,10 +63,8 @@ function getRateLimitTier(pathname, method) {
   // Admin-only API routes (POST/PUT/DELETE on queue management)
   if (pathname.startsWith('/api/queue/next')) return 'admin';
   if (pathname.startsWith('/api/queue/status')) return 'admin';
-  if (pathname.startsWith('/api/queue-config')) return 'admin';
   if (pathname.startsWith('/api/schedules') && method !== 'GET') return 'admin';
   if (pathname.startsWith('/api/courses') && method !== 'GET') return 'admin';
-  if (pathname.startsWith('/api/kiosk/')) return 'admin';
 
   // Public reads (GET /api/queue, GET /api/courses, GET /api/schedules, etc.)
   if (pathname.startsWith('/api/')) return 'publicRead';
@@ -120,23 +104,6 @@ export function proxy(request) {
     if (!allowed) {
       return rateLimitResponse(retryAfterMs);
     }
-  }
-
-  // --- Kiosk device authorization check ---
-  const kioskToken = request.cookies.get('kiosk_token')?.value;
-  const isKioskAuthorized = isValidKioskToken(kioskToken);
-
-  // Block registration page and queue board if device is not authorized
-  if ((pathname.startsWith('/register') || pathname === '/queue') && !isKioskAuthorized) {
-    return NextResponse.redirect(new URL('/?kiosk=unauthorized', request.url));
-  }
-
-  // Block queue registration API if device is not authorized
-  if (pathname === '/api/queue' && method === 'POST' && !isKioskAuthorized) {
-    return NextResponse.json(
-      { error: 'This device is not authorized for registration. An admin must authorize this device first.' },
-      { status: 403 }
-    );
   }
 
   return NextResponse.next();

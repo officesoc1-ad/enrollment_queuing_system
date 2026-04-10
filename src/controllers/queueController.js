@@ -75,27 +75,8 @@ const queueController = {
       entry,
       position,
       aheadCount,
-      currentServing: config.current_serving,
-      isQueueActive: config.is_active
+      currentServing: config.current_serving
     };
-  },
-
-  async getQueueOverview() {
-    const activeConfigs = await QueueConfig.getAllActive();
-
-    const overview = await Promise.all(
-      activeConfigs.map(async (config) => {
-        const counts = await QueueEntry.getCountByStatus(
-          config.schedule_id,
-          config.course_id,
-          config.year_level,
-          config.enrollment_type
-        );
-        return { ...config, counts };
-      })
-    );
-
-    return overview;
   },
 
   async getAllQueues() {
