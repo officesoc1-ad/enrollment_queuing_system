@@ -14,8 +14,8 @@ const RATE_LIMITS = {
   publicRead: { max: 30, windowMs: 60_000 },    // 30 req / 60s
 
   // Public write endpoints (POST /api/queue — student registration)
-  // Tighter — a student should only register once per session
-  publicWrite: { max: 5, windowMs: 60_000 },     // 5 req / 60s
+  // Tight — a student should only need to register once
+  publicWrite: { max: 2, windowMs: 3_600_000 },   // 2 req / 1 hour
 
   // Auth endpoints (admin login via Supabase)
   // Tight — prevents brute-force password guessing

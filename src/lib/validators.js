@@ -29,7 +29,9 @@ export const joinQueueSchema = z.object({
   enrollment_type: z.enum(['block_section', 'irregular']),
   student_name: z.string().min(1, 'Student name is required').max(100),
   student_id: z.string().regex(/^\d{8}$/, 'Student ID must be exactly 8 digits'),
-  turnstileToken: z.string().min(1, 'Bot verification is required')
+  turnstileToken: z.string().min(1, 'Bot verification is required'),
+  latitude: z.number().min(-90).max(90, 'Invalid latitude'),
+  longitude: z.number().min(-180).max(180, 'Invalid longitude')
 });
 
 // Queue management validation

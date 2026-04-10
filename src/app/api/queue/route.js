@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import queueController from '@/controllers/queueController';
 import { validate, joinQueueSchema } from '@/lib/validators';
 import { verifyTurnstile } from '@/lib/turnstile';
+import { isWithinCampus } from '@/lib/geofence';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/queue — Register a student in the queue (public, rate limited + Turnstile)
+// POST /api/queue — Register a student in the queue (public, rate limited + Turnstile + Geofence)
 export async function POST(request) {
   try {
 
@@ -23,8 +24,17 @@ export async function POST(request) {
       return NextResponse.json({ error: err.message }, { status: 403 });
     }
 
-    // Strip the turnstile token before passing to the controller
-    const { turnstileToken, ...registrationData } = parsed.data;
+    // Verify GPS location — must be within campus radius
+    const { allowed, distance, maxRadius } = isWithinCampus(parsed.data.latitude, parsed.data.longitude);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: `You must be on campus to register. You appear to be ${distance}m away (max: ${maxRadius}m).` },
+        { status: 403 }
+      );
+    }
+
+    // Strip non-registration fields before passing to the controller
+    const { turnstileToken, latitude, longitude, ...registrationData } = parsed.data;
 
     const entry = await queueController.registerStudent(registrationData);
     return NextResponse.json(entry, { status: 201 });
