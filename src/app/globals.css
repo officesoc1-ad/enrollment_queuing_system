@@ -459,6 +459,22 @@ a:hover {
   color: var(--primary-800);
 }
 
+/* Track page title */
+.page-header .track-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.track-title-icon {
+  height: 40px;
+  width: auto;
+}
+
 /* Grid */
 .grid {
   display: grid;
@@ -505,6 +521,15 @@ a:hover {
   .page-header p {
     color: white;
     opacity: 0.95;
+  }
+
+  .page-header .track-title {
+    font-size: 1.5rem;
+    gap: 8px;
+  }
+
+  .track-title-icon {
+    height: 30px;
   }
 }
 

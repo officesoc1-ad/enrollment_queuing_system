@@ -45,8 +45,8 @@ export default function TrackPage() {
       <section className="page-header" style={{ padding: '48px 0', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <InteractiveParticles />
         <div className="container" style={{ position: 'relative', zIndex: 1, pointerEvents: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-            <img src="/findqueue-icon.svg" alt="Find Queue Icon" style={{ height: '40px', width: 'auto' }} />
+          <h1 className="track-title">
+            <img src="/findqueue-icon.svg" alt="Find Queue Icon" className="track-title-icon" />
             Find Your Queue
           </h1>
           <p style={{ fontSize: '1.125rem', opacity: 0.9 }}>Enter your Student ID to check your queue status</p>
