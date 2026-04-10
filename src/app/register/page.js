@@ -74,8 +74,8 @@ export default function RegisterPage() {
 
     setSubmitting(true);
     try {
-      // Fetch the freshest schedules from the server
-      const schedulesRes = await fetch('/api/schedules', { cache: 'no-store' });
+      // Fetch absolute strictest version of schedules by bypassing Vercel's edge cache with a timestamp
+      const schedulesRes = await fetch(`/api/schedules?t=${Date.now()}`, { cache: 'no-store' });
       const freshSchedules = await schedulesRes.json();
 
       // Enforce checking for an explicitly active schedule
