@@ -17,7 +17,7 @@ export default async function HomePage({ searchParams }) {
             <span><span className="hau-text">HAU</span> Enrollment Queuing System</span>
           </h1>
           <p style={{ fontSize: '1.125rem', maxWidth: '600px', margin: '0 auto' }}>
-            Holy Angel University — School of Computing<br />
+            Holy Angel University · School of Computing<br />
             Digital enrollment queue management
           </p>
         </div>
