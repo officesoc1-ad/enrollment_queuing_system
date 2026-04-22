@@ -24,27 +24,31 @@ const queueController = {
     return entry;
   },
 
-  async callNext(configId) {
+  async callNext(configId, count = 1) {
     const config = await QueueConfig.getById(configId);
     if (!config) throw new Error('Queue config not found');
 
-    // Find the next waiting entry
-    const nextEntry = await QueueEntry.getNextWaiting(
+    // Fetch up to `count` waiting entries
+    const waitingEntries = await QueueEntry.getNextNWaiting(
       config.schedule_id,
       config.course_id,
       config.year_level,
-      config.enrollment_type
+      config.enrollment_type,
+      count
     );
 
-    if (!nextEntry) return { message: 'No more students waiting', config };
+    if (waitingEntries.length === 0) return { message: 'No more students waiting', config, called: 0 };
 
-    // Set the entry to serving
-    const updated = await QueueEntry.updateStatus(nextEntry.id, 'serving');
+    // Set all fetched entries to 'serving' in parallel
+    const updatedEntries = await Promise.all(
+      waitingEntries.map(entry => QueueEntry.updateStatus(entry.id, 'serving'))
+    );
 
-    // Update the current serving number on the config
-    await QueueConfig.updateCurrentServing(configId, nextEntry.queue_number);
+    // Update current_serving to the highest queue number called
+    const lastEntry = waitingEntries[waitingEntries.length - 1];
+    await QueueConfig.updateCurrentServing(configId, lastEntry.queue_number);
 
-    return { entry: updated, config };
+    return { entries: updatedEntries, config, called: updatedEntries.length };
   },
 
   async skipCurrent(entryId) {

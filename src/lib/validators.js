@@ -36,7 +36,8 @@ export const joinQueueSchema = z.object({
 
 // Queue management validation
 export const callNextSchema = z.object({
-  configId: uuid
+  configId: uuid,
+  count: z.number().int().min(1).max(50).default(1)
 });
 
 export const statusChangeSchema = z.object({

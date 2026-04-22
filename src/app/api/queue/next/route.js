@@ -16,7 +16,7 @@ export async function POST(request) {
       return NextResponse.json({ error: parsed.error }, { status: 400 });
     }
 
-    const result = await queueController.callNext(parsed.data.configId);
+    const result = await queueController.callNext(parsed.data.configId, parsed.data.count);
     return NextResponse.json(result);
   } catch (error) {
     if (error.message.startsWith('Unauthorized')) {

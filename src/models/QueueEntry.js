@@ -71,6 +71,21 @@ const QueueEntry = {
     return data;
   },
 
+  async getNextNWaiting(schedule_id, course_id, year_level, enrollment_type, count = 1) {
+    const { data, error } = await supabase
+      .from('queue_entries')
+      .select('*')
+      .eq('schedule_id', schedule_id)
+      .eq('course_id', course_id)
+      .eq('year_level', year_level)
+      .eq('enrollment_type', enrollment_type)
+      .eq('status', 'waiting')
+      .order('queue_number')
+      .limit(count);
+    if (error) throw error;
+    return data || [];
+  },
+
   async getCountByStatus(schedule_id, course_id, year_level, enrollment_type) {
     const { data, error } = await supabase
       .from('queue_entries')

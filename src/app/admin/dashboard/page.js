@@ -19,6 +19,7 @@ export default function AdminDashboardPage() {
   const selectedQueueRef = useRef(null);
   const debounceTimer = useRef(null);
   const [queueEntries, setQueueEntries] = useState([]);
+  const [batchSize, setBatchSize] = useState(1);
 
   // Modal states
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -217,18 +218,29 @@ export default function AdminDashboardPage() {
   };
 
   const handleCallNext = async (configId) => {
+    const count = batchSize;
     setLoadingAction('call-next');
     
-    // OPTIMISTIC UI: Find the next waiting person
-    const nextEntry = queueEntries.find(e => e.status === 'waiting');
-    if (nextEntry) {
-      setQueueEntries(prev => prev.map(e => e.id === nextEntry.id ? { ...e, status: 'serving' } : e));
+    // OPTIMISTIC UI: Find the next N waiting people
+    const waitingEntries = queueEntries
+      .filter(e => e.status === 'waiting')
+      .sort((a, b) => a.queue_number - b.queue_number)
+      .slice(0, count);
+
+    if (waitingEntries.length > 0) {
+      const waitingIds = new Set(waitingEntries.map(e => e.id));
+      setQueueEntries(prev => prev.map(e => waitingIds.has(e.id) ? { ...e, status: 'serving' } : e));
+      const lastEntry = waitingEntries[waitingEntries.length - 1];
       const updateData = (q) => {
         if (q.id === configId) {
           return {
             ...q,
-            current_serving: nextEntry.queue_number,
-            counts: { ...q.counts, waiting: Math.max(0, (q.counts?.waiting || 0) - 1), serving: (q.counts?.serving || 0) + 1 }
+            current_serving: lastEntry.queue_number,
+            counts: {
+              ...q.counts,
+              waiting: Math.max(0, (q.counts?.waiting || 0) - waitingEntries.length),
+              serving: (q.counts?.serving || 0) + waitingEntries.length
+            }
           };
         }
         return q;
@@ -240,11 +252,17 @@ export default function AdminDashboardPage() {
     try {
       const res = await authFetch('/api/queue/next', {
         method: 'POST',
-        body: JSON.stringify({ configId })
+        body: JSON.stringify({ configId, count })
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      const result = await res.json();
+      const called = result.called || 0;
       // Success! Realtime listener will handle background true-up.
-      showToast('Next student called successfully');
+      if (called === 0) {
+        showToast('No more students waiting', 'error');
+      } else {
+        showToast(`Called ${called} student${called > 1 ? 's' : ''} successfully`);
+      }
     } catch (err) {
       showToast(err.message || 'Failed to call next', 'error');
       // Revert optimistic updates
@@ -669,13 +687,38 @@ export default function AdminDashboardPage() {
                     <h3 className="card-title">
                       {selectedQueue.courses?.code} — {yearSuffix(selectedQueue.year_level)} Year
                     </h3>
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => handleCallNext(selectedQueue.id)}
-                      disabled={loadingAction === 'call-next'}
-                    >
-                      {loadingAction === 'call-next' ? 'Calling...' : '▶ Call Next'}
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <select
+                        id="batch-size-select"
+                        value={batchSize}
+                        onChange={(e) => setBatchSize(Number(e.target.value))}
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          border: '1.5px solid #d1d5db',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          background: 'white',
+                          cursor: 'pointer',
+                          color: '#374151',
+                          minWidth: '52px',
+                          textAlign: 'center'
+                        }}
+                      >
+                        {[1, 3, 5, 10, 20].map(n => (
+                          <option key={n} value={n}>{n}</option>
+                        ))}
+                      </select>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => handleCallNext(selectedQueue.id)}
+                        disabled={loadingAction === 'call-next'}
+                      >
+                        {loadingAction === 'call-next'
+                          ? 'Calling...'
+                          : `▶ Call Next${batchSize > 1 ? ` ${batchSize}` : ''}`}
+                      </button>
+                    </div>
                   </div>
 
                   <div style={{ marginBottom: '16px', display: 'flex', gap: '12px' }}>
