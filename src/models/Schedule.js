@@ -43,11 +43,15 @@ const Schedule = {
   },
 
   async delete(id) {
-    const { error } = await getServiceSupabase()
+    const { data, error } = await getServiceSupabase()
       .from('enrollment_schedules')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select();
     if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error('Schedule not found or already deleted');
+    }
   },
 
   async getByDateAndType(schedule_date, enrollment_type) {

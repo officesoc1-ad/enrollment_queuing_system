@@ -16,7 +16,7 @@ Follow these steps to deploy the system to a clean server environment.
 
 1. Go to [supabase.com](https://supabase.com) and create a new project.
 2. Go to **SQL Editor** > **New Query**.
-3. Paste the contents of `supabase_setup.sql` and click **Run**.
+3. Paste and run the contents of `supabase_setup.sql`, then `migration_add_course.sql`, then `migration_add_offering.sql`.
 4. Go to **Project Settings** > **API** and copy your credentials:
    - `Project URL`
    - `anon public` key
@@ -25,21 +25,22 @@ Follow these steps to deploy the system to a clean server environment.
    - Go to **Authentication** > **Users** > **Add User** > **Create new user**.
    - Enter an email and password (this will be used to log into the admin dashboard).
 
-### 2. Prepare Your Kiosk Secret
+### 2. Cloudflare Turnstile Setup (Bot Protection)
 
-Because the system blocks students from registering remotely, it uses a secure device authorization cookie. You need to generate a random 32-64 character string (letters and numbers) to sign these cookies.
-- *Example*: `72e38c5aa1ad009088ba7b0ee5fc8f7736`
-- Keep this handy for the Vercel deployment.
+1. Go to the [Cloudflare Dashboard](https://dash.cloudflare.com) and sign in (or create a free account).
+2. Navigate to **Turnstile** in the left sidebar.
+3. Click **Add Site**.
+4. Enter a site name (e.g., "HAU Enrollment") and your deployment domain.
+5. Choose the widget type (Managed is recommended) and click **Create**.
+6. Copy the two keys:
+   - **Site Key** → used as `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+   - **Secret Key** → used as `TURNSTILE_SECRET_KEY`
 
 ### 3. Vercel Deployment
 
 1. Push your code to a GitHub repository.
 2. Import the project in [vercel.com](https://vercel.com).
-3. Expand the **Environment Variables** section and add the following:
-   - `NEXT_PUBLIC_SUPABASE_URL` = *(Your Supabase Project URL)*
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = *(Your Supabase anon key)*
-   - `SUPABASE_SERVICE_ROLE_KEY` = *(Your Supabase service_role key)*
-   - `KIOSK_SECRET` = *(Your generated random string)*
+3. Expand the **Environment Variables** section and add **all** of the variables listed in the [Environment Variables](#environment-variables) section below.
 4. Click **Deploy**.
 
 ### 4. Authorizing the Registration Computer
@@ -47,22 +48,57 @@ Because the system blocks students from registering remotely, it uses a secure d
 Once deployed, the `/register` and `/queue` pages will be locked. To unlock them:
 1. On the physical computer that will be used for registration, open your Vercel URL and navigate to `/admin`.
 2. Log in using the admin account you created in Supabase.
-3. On the dashboard, locate the red "Kiosk Mode" banner and click **🔑 Authorize This Device**.
-4. The device is now authorized, and you can safely navigate to `/register` and `/queue`.
+
+
+---
+
+## Environment Variables
+
+The table below lists every environment variable the system requires.
+
+| Variable | Public? | Description | How to Obtain |
+|---|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project REST URL | Supabase → **Project Settings** → **API** → *Project URL* |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous (public) API key | Supabase → **Project Settings** → **API** → *anon public* key |
+| `SUPABASE_SERVICE_ROLE_KEY` | **No** | Supabase service-role key (full DB access, server-only) | Supabase → **Project Settings** → **API** → *service_role* key |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Yes | Cloudflare Turnstile widget site key | Cloudflare Dashboard → **Turnstile** → your site → *Site Key* |
+| `TURNSTILE_SECRET_KEY` | **No** | Cloudflare Turnstile server-side secret key | Cloudflare Dashboard → **Turnstile** → your site → *Secret Key* |
+| `NEXT_PUBLIC_CAMPUS_LAT` | Yes | Campus center latitude for GPS geofence (default: `15.132319684174114`) | Use Google Maps: right-click the campus center → copy latitude |
+| `NEXT_PUBLIC_CAMPUS_LNG` | Yes | Campus center longitude for GPS geofence (default: `120.58956372807982`) | Use Google Maps: right-click the campus center → copy longitude |
+| `NEXT_PUBLIC_CAMPUS_RADIUS_METERS` | Yes | Allowed radius in meters around the campus center (default: `200`) | Set based on your campus size |
+
+> **Note:** Variables prefixed with `NEXT_PUBLIC_` are exposed to the browser. All others are server-only and must be kept secret.
+
+### `.env.local` Example
+
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+
+# Cloudflare Turnstile
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAAAA...
+TURNSTILE_SECRET_KEY=0x4AAAAAAA...
+
+# Campus Geofence (optional — defaults shown)
+NEXT_PUBLIC_CAMPUS_LAT=15.132319684174114
+NEXT_PUBLIC_CAMPUS_LNG=120.58956372807982
+NEXT_PUBLIC_CAMPUS_RADIUS_METERS=200
+```
 
 ## Local Development
 
 ```bash
-# 1. Copy env file and fill in your Supabase keys
+# 1. Create a .env.local file and fill in all variables
+#    (see the Environment Variables section above)
 cp .env.local.example .env.local
 
-# 2. Add your KIOSK_SECRET (random string) to .env.local
-# Example: KIOSK_SECRET=your_random_string_here
-
-# 3. Install dependencies
+# 2. Install dependencies
 npm install
 
-# 4. Run dev server
+# 3. Run dev server
 npm run dev
 ```
 
