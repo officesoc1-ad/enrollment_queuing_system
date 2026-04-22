@@ -4,11 +4,23 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-// DELETE /api/admins/[id] — Delete an admin user (admin only, requires password re-confirmation)
+// DELETE /api/admins/[id] — Delete an admin user (permanent admins only, requires password re-confirmation)
 export async function DELETE(request, { params }) {
   try {
     const callingUser = await verifyAdmin(request);
     const { id } = await params;
+
+    // Check if the calling admin is a temporary account — block them
+    const { data: { user: fullUser }, error: userError } = await getServiceSupabase()
+      .auth.admin.getUserById(callingUser.id);
+    if (userError) throw userError;
+
+    if (fullUser.user_metadata?.is_temporary === true) {
+      return NextResponse.json(
+        { error: 'Temporary admin accounts cannot delete admins' },
+        { status: 403 }
+      );
+    }
 
     // Prevent self-deletion
     if (id === callingUser.id) {

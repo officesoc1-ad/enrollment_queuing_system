@@ -48,9 +48,17 @@ export default function AdminDashboardPage() {
   const [admins, setAdmins] = useState([]);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showDeleteAdminModal, setShowDeleteAdminModal] = useState(false);
-  const [adminForm, setAdminForm] = useState({ email: '', password: '', currentPassword: '' });
+  const [adminForm, setAdminForm] = useState({ email: '', password: '', currentPassword: '', is_temporary: false });
   const [deleteAdminTarget, setDeleteAdminTarget] = useState(null);
   const [deleteAdminPassword, setDeleteAdminPassword] = useState('');
+
+  // Current admin profile (role awareness)
+  const [myProfile, setMyProfile] = useState(null);
+  const isTemporaryAdmin = myProfile?.is_temporary === true;
+
+  // Change password states
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [changePasswordForm, setChangePasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
 
   // Auth check + auto-refresh listener
   useEffect(() => {
@@ -439,6 +447,22 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // === Admin Profile ===
+  const fetchMyProfile = useCallback(async () => {
+    try {
+      const res = await authFetch('/api/admins/me');
+      if (!res.ok) return;
+      const data = await res.json();
+      setMyProfile(data);
+    } catch (err) {
+      console.error('Failed to fetch profile:', err);
+    }
+  }, [authFetch]);
+
+  useEffect(() => {
+    if (session) fetchMyProfile();
+  }, [session, fetchMyProfile]);
+
   // === Admin Management Handlers ===
   const fetchAdmins = useCallback(async () => {
     try {
@@ -470,9 +494,35 @@ export default function AdminDashboardPage() {
       setAdmins(prev => [...prev, newAdmin]);
       showToast('Admin created successfully');
       setShowAdminModal(false);
-      setAdminForm({ email: '', password: '', currentPassword: '' });
+      setAdminForm({ email: '', password: '', currentPassword: '', is_temporary: false });
     } catch (err) {
       showToast(err.message || 'Failed to create admin', 'error');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (changePasswordForm.newPassword !== changePasswordForm.confirmPassword) {
+      showToast('New passwords do not match', 'error');
+      return;
+    }
+    setLoadingAction('change-password');
+    try {
+      const res = await authFetch('/api/admins/change-password', {
+        method: 'POST',
+        body: JSON.stringify({
+          currentPassword: changePasswordForm.currentPassword,
+          newPassword: changePasswordForm.newPassword
+        })
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      showToast('Password changed successfully');
+      setShowChangePasswordModal(false);
+      setChangePasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      showToast(err.message || 'Failed to change password', 'error');
     } finally {
       setLoadingAction(null);
     }
@@ -595,7 +645,27 @@ export default function AdminDashboardPage() {
           ⚙️ Admin Dashboard
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>{session?.user?.email}</span>
+          <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            {session?.user?.email}
+            {isTemporaryAdmin && (
+              <span style={{
+                marginLeft: '6px',
+                fontSize: '0.65rem',
+                padding: '2px 7px',
+                borderRadius: '999px',
+                background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                color: '#78350f',
+                fontWeight: 700
+              }}>Temporary</span>
+            )}
+          </span>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              setChangePasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+              setShowChangePasswordModal(true);
+            }}
+          >🔑 Change Password</button>
           <button className="btn btn-secondary btn-sm" onClick={handleLogout}>Logout</button>
         </div>
       </div>
@@ -950,18 +1020,37 @@ export default function AdminDashboardPage() {
           <div className="card">
             <div className="card-header">
               <h3 className="card-title">Admin Users</h3>
-              <button className="btn btn-primary" onClick={() => {
-                setAdminForm({ email: '', password: '', currentPassword: '' });
-                setShowAdminModal(true);
-              }}>
-                + Add Admin
-              </button>
+              {!isTemporaryAdmin && (
+                <button className="btn btn-primary" onClick={() => {
+                  setAdminForm({ email: '', password: '', currentPassword: '', is_temporary: false });
+                  setShowAdminModal(true);
+                }}>
+                  + Add Admin
+                </button>
+              )}
             </div>
+            {isTemporaryAdmin && (
+              <div style={{
+                padding: '12px 16px',
+                margin: '0 16px 12px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #fffbeb, #fef3c7)',
+                border: '1px solid #fbbf24',
+                fontSize: '0.8125rem',
+                color: '#92400e',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                ⚠️ You are using a temporary account. Adding or deleting admins is restricted.
+              </div>
+            )}
             <div className="table-wrapper">
               <table className="table">
                 <thead>
                   <tr>
                     <th>Email</th>
+                    <th>Role</th>
                     <th>Created</th>
                     <th>Actions</th>
                   </tr>
@@ -969,7 +1058,7 @@ export default function AdminDashboardPage() {
                 <tbody>
                   {admins.length === 0 ? (
                     <tr>
-                      <td colSpan="3" style={{ textAlign: 'center', color: '#9ca3af', padding: '24px' }}>
+                      <td colSpan="4" style={{ textAlign: 'center', color: '#9ca3af', padding: '24px' }}>
                         No admin users found
                       </td>
                     </tr>
@@ -990,12 +1079,28 @@ export default function AdminDashboardPage() {
                             }}>You</span>
                           )}
                         </td>
+                        <td>
+                          <span style={{
+                            fontSize: '0.75rem',
+                            padding: '3px 10px',
+                            borderRadius: '999px',
+                            fontWeight: 700,
+                            background: a.is_temporary
+                              ? 'linear-gradient(135deg, #fef3c7, #fde68a)'
+                              : 'linear-gradient(135deg, #d1fae5, #a7f3d0)',
+                            color: a.is_temporary ? '#92400e' : '#065f46'
+                          }}>
+                            {a.is_temporary ? 'Temporary' : 'Permanent'}
+                          </span>
+                        </td>
                         <td style={{ fontSize: '0.8125rem', color: '#6b7280' }}>
                           {new Date(a.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                         </td>
                         <td>
                           {a.id === session?.user?.id ? (
                             <span style={{ fontSize: '0.8125rem', color: '#9ca3af', fontStyle: 'italic' }}>Current account</span>
+                          ) : isTemporaryAdmin ? (
+                            <span style={{ fontSize: '0.8125rem', color: '#d1d5db', fontStyle: 'italic' }}>—</span>
                           ) : (
                             <button
                               className="btn btn-danger btn-sm"
@@ -1178,6 +1283,52 @@ export default function AdminDashboardPage() {
                   required
                 />
               </div>
+              <div className="form-group">
+                <label className="form-label" style={{ marginBottom: '8px' }}>Account Type</label>
+                <div style={{
+                  display: 'flex',
+                  gap: '10px'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setAdminForm(f => ({ ...f, is_temporary: false }))}
+                    style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: `2px solid ${!adminForm.is_temporary ? '#10b981' : '#e5e7eb'}`,
+                      background: !adminForm.is_temporary ? 'linear-gradient(135deg, #d1fae5, #a7f3d0)' : 'white',
+                      color: !adminForm.is_temporary ? '#065f46' : '#6b7280',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      transition: 'all 150ms ease'
+                    }}
+                  >
+                    🛡️ Permanent
+                    <div style={{ fontWeight: 400, fontSize: '0.75rem', marginTop: '2px' }}>Full admin access</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAdminForm(f => ({ ...f, is_temporary: true }))}
+                    style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: `2px solid ${adminForm.is_temporary ? '#f59e0b' : '#e5e7eb'}`,
+                      background: adminForm.is_temporary ? 'linear-gradient(135deg, #fef3c7, #fde68a)' : 'white',
+                      color: adminForm.is_temporary ? '#92400e' : '#6b7280',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      transition: 'all 150ms ease'
+                    }}
+                  >
+                    ⏱️ Temporary
+                    <div style={{ fontWeight: 400, fontSize: '0.75rem', marginTop: '2px' }}>Cannot add/delete admins</div>
+                  </button>
+                </div>
+              </div>
               <div style={{
                 margin: '20px 0 16px',
                 padding: '16px',
@@ -1206,6 +1357,60 @@ export default function AdminDashboardPage() {
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={loadingAction === 'create-admin'}>
                   {loadingAction === 'create-admin' ? 'Creating...' : 'Create Admin'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===== CHANGE PASSWORD MODAL ===== */}
+      {showChangePasswordModal && (
+        <div className="modal-overlay" onClick={() => setShowChangePasswordModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h2 className="modal-title">🔑 Change Password</h2>
+            <form onSubmit={handleChangePassword}>
+              <div className="form-group">
+                <label className="form-label">Current Password</label>
+                <input
+                  type="password"
+                  className="form-input"
+                  placeholder="Enter your current password"
+                  value={changePasswordForm.currentPassword}
+                  onChange={e => setChangePasswordForm(f => ({ ...f, currentPassword: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">New Password</label>
+                <input
+                  type="password"
+                  className="form-input"
+                  placeholder="Min. 6 characters"
+                  value={changePasswordForm.newPassword}
+                  onChange={e => setChangePasswordForm(f => ({ ...f, newPassword: e.target.value }))}
+                  minLength={6}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Confirm New Password</label>
+                <input
+                  type="password"
+                  className="form-input"
+                  placeholder="Re-enter new password"
+                  value={changePasswordForm.confirmPassword}
+                  onChange={e => setChangePasswordForm(f => ({ ...f, confirmPassword: e.target.value }))}
+                  minLength={6}
+                  required
+                />
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowChangePasswordModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={loadingAction === 'change-password'}>
+                  {loadingAction === 'change-password' ? 'Changing...' : 'Change Password'}
                 </button>
               </div>
             </form>

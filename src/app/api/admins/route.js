@@ -4,18 +4,36 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/admins — List all admin users (admin only)
+// GET /api/admins — List admin users (temporary admins only see themselves)
 export async function GET(request) {
   try {
-    await verifyAdmin(request);
+    const callingUser = await verifyAdmin(request);
 
+    // Fetch full profile to check temporary status
+    const { data: { user: fullUser }, error: userError } = await getServiceSupabase()
+      .auth.admin.getUserById(callingUser.id);
+    if (userError) throw userError;
+
+    const isTempAdmin = fullUser.user_metadata?.is_temporary === true;
+
+    if (isTempAdmin) {
+      // Temporary admins can only see their own account
+      return NextResponse.json([{
+        id: fullUser.id,
+        email: fullUser.email,
+        is_temporary: true,
+        created_at: fullUser.created_at
+      }]);
+    }
+
+    // Permanent admins see all accounts
     const { data, error } = await getServiceSupabase().auth.admin.listUsers();
     if (error) throw error;
 
-    // Return only the fields the UI needs
     const admins = data.users.map(u => ({
       id: u.id,
       email: u.email,
+      is_temporary: u.user_metadata?.is_temporary === true,
       created_at: u.created_at
     }));
 
@@ -28,13 +46,25 @@ export async function GET(request) {
   }
 }
 
-// POST /api/admins — Create a new admin user (admin only, requires password re-confirmation)
+// POST /api/admins — Create a new admin user (permanent admins only, requires password re-confirmation)
 export async function POST(request) {
   try {
     const callingUser = await verifyAdmin(request);
 
+    // Check if the calling admin is a temporary account — block them
+    const { data: { user: fullUser }, error: userError } = await getServiceSupabase()
+      .auth.admin.getUserById(callingUser.id);
+    if (userError) throw userError;
+
+    if (fullUser.user_metadata?.is_temporary === true) {
+      return NextResponse.json(
+        { error: 'Temporary admin accounts cannot create new admins' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
-    const { email, password, currentPassword } = body;
+    const { email, password, currentPassword, is_temporary } = body;
 
     if (!email || !password || !currentPassword) {
       return NextResponse.json(
@@ -73,7 +103,10 @@ export async function POST(request) {
     const { data, error } = await getServiceSupabase().auth.admin.createUser({
       email,
       password,
-      email_confirm: true
+      email_confirm: true,
+      user_metadata: {
+        is_temporary: is_temporary === true
+      }
     });
 
     if (error) throw error;
@@ -81,6 +114,7 @@ export async function POST(request) {
     return NextResponse.json({
       id: data.user.id,
       email: data.user.email,
+      is_temporary: data.user.user_metadata?.is_temporary === true,
       created_at: data.user.created_at
     }, { status: 201 });
   } catch (error) {
