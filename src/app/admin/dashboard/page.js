@@ -228,7 +228,7 @@ export default function AdminDashboardPage() {
   const handleCallNext = async (configId) => {
     const count = batchSize;
     setLoadingAction('call-next');
-    
+
     // OPTIMISTIC UI: Find the next N waiting people
     const waitingEntries = queueEntries
       .filter(e => e.status === 'waiting')
@@ -353,7 +353,7 @@ export default function AdminDashboardPage() {
         });
       }
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      
+
       const savedSchedule = await res.json();
 
       // Optimistic state update — no extra DB call needed
@@ -709,200 +709,200 @@ export default function AdminDashboardPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div className="grid grid-2" style={{ alignItems: 'start' }}>
               {/* Left: Queue list */}
-            <div>
-              <div className="card">
-                <div className="card-header">
-                  <h3 className="card-title">All Queues</h3>
+              <div>
+                <div className="card">
+                  <div className="card-header">
+                    <h3 className="card-title">All Queues</h3>
+                  </div>
+                  {queues.length === 0 ? (
+                    <div className="empty-state">
+                      <p className="empty-state-text">No queues created yet</p>
+                      <p style={{ fontSize: '0.8125rem', color: '#9ca3af', marginTop: '4px' }}>
+                        Create schedules first, then students can register into queues
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      {queues.map(q => (
+                        <div
+                          key={q.id}
+                          onClick={() => { setSelectedQueue(q); fetchQueueEntries(q); }}
+                          style={{
+                            padding: '12px 16px',
+                            borderBottom: '1px solid #f3f4f6',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            background: selectedQueue?.id === q.id ? 'var(--primary-50)' : 'transparent',
+                            borderLeft: selectedQueue?.id === q.id ? '3px solid var(--gold-500)' : '3px solid transparent',
+                            transition: 'all 150ms ease'
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>
+                              {q.courses?.code} — {yearSuffix(q.year_level)} Year
+                            </div>
+                            <div style={{ fontSize: '0.8125rem', color: '#9ca3af' }}>
+                              {typeLabel(q.enrollment_type)} · Serving #{q.current_serving || 0}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span className={`badge ${q.counts?.waiting ? 'badge-waiting' : 'badge-inactive'}`}>
+                              {q.counts?.waiting || 0} waiting
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {queues.length === 0 ? (
-                  <div className="empty-state">
-                    <p className="empty-state-text">No queues created yet</p>
-                    <p style={{ fontSize: '0.8125rem', color: '#9ca3af', marginTop: '4px' }}>
-                      Create schedules first, then students can register into queues
-                    </p>
+              </div>
+
+              {/* Right: Queue details */}
+              <div>
+                {selectedQueue ? (
+                  <div className="card">
+                    <div className="card-header">
+                      <h3 className="card-title">
+                        {selectedQueue.courses?.code} — {yearSuffix(selectedQueue.year_level)} Year
+                      </h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <select
+                          id="batch-size-select"
+                          value={batchSize}
+                          onChange={(e) => setBatchSize(Number(e.target.value))}
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            border: '1.5px solid #d1d5db',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            background: 'white',
+                            cursor: 'pointer',
+                            color: '#374151',
+                            minWidth: '52px',
+                            textAlign: 'center'
+                          }}
+                        >
+                          {[1, 3, 5, 10, 20].map(n => (
+                            <option key={n} value={n}>{n}</option>
+                          ))}
+                        </select>
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => handleCallNext(selectedQueue.id)}
+                          disabled={loadingAction === 'call-next'}
+                        >
+                          {loadingAction === 'call-next'
+                            ? 'Calling...'
+                            : `▶ Call Next${batchSize > 1 ? ` ${batchSize}` : ''}`}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: '16px', display: 'flex', gap: '12px' }}>
+                      <div className="stat-card card" style={{ flex: 1, padding: '12px' }}>
+                        <div className="stat-value" style={{ fontSize: '1.75rem', color: '#6366f1' }}>
+                          {selectedQueue.current_serving ? `#${selectedQueue.current_serving}` : '—'}
+                        </div>
+                        <div className="stat-label" style={{ fontSize: '0.6875rem' }}>Ticket Called</div>
+                      </div>
+                      <div className="stat-card card" style={{ flex: 1, padding: '12px' }}>
+                        <div className="stat-value" style={{ fontSize: '1.75rem', color: '#3b82f6' }}>
+                          {selectedQueue.counts?.waiting || 0}
+                        </div>
+                        <div className="stat-label" style={{ fontSize: '0.6875rem' }}>Waiting</div>
+                      </div>
+                      <div className="stat-card card" style={{ flex: 1, padding: '12px' }}>
+                        <div className="stat-value" style={{ fontSize: '1.75rem', color: '#10b981' }}>
+                          {selectedQueue.counts?.completed || 0}
+                        </div>
+                        <div className="stat-label" style={{ fontSize: '0.6875rem' }}>Done</div>
+                      </div>
+                    </div>
+
+                    {/* Queue entries table */}
+                    <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                      <div className="table-wrapper">
+                        <table className="table">
+                          <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                            <tr>
+                              <th>#</th>
+                              <th>Student</th>
+                              <th>ID</th>
+                              <th>Status</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {queueEntries.length === 0 ? (
+                              <tr>
+                                <td colSpan="5" style={{ textAlign: 'center', color: '#9ca3af', padding: '24px' }}>
+                                  No entries in this queue
+                                </td>
+                              </tr>
+                            ) : (
+                              [...queueEntries]
+                                .sort((a, b) => {
+                                  const order = { serving: 0, skipped: 1, waiting: 2, completed: 3 };
+                                  return (order[a.status] ?? 4) - (order[b.status] ?? 4);
+                                })
+                                .map(entry => (
+                                  <tr key={entry.id}>
+                                    <td style={{ fontWeight: 700 }}>{entry.queue_number}</td>
+                                    <td>{entry.student_name}</td>
+                                    <td style={{ fontSize: '0.8125rem', color: '#6b7280' }}>{entry.student_id}</td>
+                                    <td>
+                                      <span className={`badge badge-${entry.status}`}>{entry.status}</span>
+                                    </td>
+                                    <td>
+                                      {entry.status === 'serving' && (
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                          <button
+                                            className="btn btn-success btn-sm"
+                                            onClick={() => handleStatusChange(entry.id, 'complete')}
+                                            disabled={loadingAction === `complete-${entry.id}`}
+                                          >
+                                            {loadingAction === `complete-${entry.id}` ? '...' : '✓ Done'}
+                                          </button>
+                                          <button
+                                            className="btn btn-warning btn-sm"
+                                            onClick={() => handleStatusChange(entry.id, 'skip')}
+                                            disabled={loadingAction === `skip-${entry.id}`}
+                                          >
+                                            {loadingAction === `skip-${entry.id}` ? '...' : 'Skip'}
+                                          </button>
+                                        </div>
+                                      )}
+                                      {entry.status === 'skipped' && (
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                          <button
+                                            className="btn btn-success btn-sm"
+                                            onClick={() => handleStatusChange(entry.id, 'complete')}
+                                            disabled={loadingAction === `complete-${entry.id}`}
+                                          >
+                                            {loadingAction === `complete-${entry.id}` ? '...' : '✓ Done'}
+                                          </button>
+                                        </div>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
                 ) : (
-                  <div>
-                    {queues.map(q => (
-                      <div
-                        key={q.id}
-                        onClick={() => { setSelectedQueue(q); fetchQueueEntries(q); }}
-                        style={{
-                          padding: '12px 16px',
-                          borderBottom: '1px solid #f3f4f6',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          background: selectedQueue?.id === q.id ? 'var(--primary-50)' : 'transparent',
-                          borderLeft: selectedQueue?.id === q.id ? '3px solid var(--gold-500)' : '3px solid transparent',
-                          transition: 'all 150ms ease'
-                        }}
-                      >
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>
-                            {q.courses?.code} — {yearSuffix(q.year_level)} Year
-                          </div>
-                          <div style={{ fontSize: '0.8125rem', color: '#9ca3af' }}>
-                            {typeLabel(q.enrollment_type)} · Serving #{q.current_serving || 0}
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span className={`badge ${q.counts?.waiting ? 'badge-waiting' : 'badge-inactive'}`}>
-                            {q.counts?.waiting || 0} waiting
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="card empty-state">
+                    <div className="empty-state-icon">👈</div>
+                    <p className="empty-state-text">Select a queue to view details</p>
                   </div>
                 )}
               </div>
             </div>
-
-            {/* Right: Queue details */}
-            <div>
-              {selectedQueue ? (
-                <div className="card">
-                  <div className="card-header">
-                    <h3 className="card-title">
-                      {selectedQueue.courses?.code} — {yearSuffix(selectedQueue.year_level)} Year
-                    </h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <select
-                        id="batch-size-select"
-                        value={batchSize}
-                        onChange={(e) => setBatchSize(Number(e.target.value))}
-                        style={{
-                          padding: '8px 10px',
-                          borderRadius: '8px',
-                          border: '1.5px solid #d1d5db',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          background: 'white',
-                          cursor: 'pointer',
-                          color: '#374151',
-                          minWidth: '52px',
-                          textAlign: 'center'
-                        }}
-                      >
-                        {[1, 3, 5, 10, 20].map(n => (
-                          <option key={n} value={n}>{n}</option>
-                        ))}
-                      </select>
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => handleCallNext(selectedQueue.id)}
-                        disabled={loadingAction === 'call-next'}
-                      >
-                        {loadingAction === 'call-next'
-                          ? 'Calling...'
-                          : `▶ Call Next${batchSize > 1 ? ` ${batchSize}` : ''}`}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div style={{ marginBottom: '16px', display: 'flex', gap: '12px' }}>
-                    <div className="stat-card card" style={{ flex: 1, padding: '12px' }}>
-                      <div className="stat-value" style={{ fontSize: '1.75rem', color: '#6366f1' }}>
-                        {selectedQueue.current_serving ? `#${selectedQueue.current_serving}` : '—'}
-                      </div>
-                      <div className="stat-label" style={{ fontSize: '0.6875rem' }}>Ticket Called</div>
-                    </div>
-                    <div className="stat-card card" style={{ flex: 1, padding: '12px' }}>
-                      <div className="stat-value" style={{ fontSize: '1.75rem', color: '#3b82f6' }}>
-                        {selectedQueue.counts?.waiting || 0}
-                      </div>
-                      <div className="stat-label" style={{ fontSize: '0.6875rem' }}>Waiting</div>
-                    </div>
-                    <div className="stat-card card" style={{ flex: 1, padding: '12px' }}>
-                      <div className="stat-value" style={{ fontSize: '1.75rem', color: '#10b981' }}>
-                        {selectedQueue.counts?.completed || 0}
-                      </div>
-                      <div className="stat-label" style={{ fontSize: '0.6875rem' }}>Done</div>
-                    </div>
-                  </div>
-
-                  {/* Queue entries table */}
-                  <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                    <div className="table-wrapper">
-                      <table className="table">
-                        <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
-                          <tr>
-                            <th>#</th>
-                            <th>Student</th>
-                            <th>ID</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {queueEntries.length === 0 ? (
-                            <tr>
-                              <td colSpan="5" style={{ textAlign: 'center', color: '#9ca3af', padding: '24px' }}>
-                                No entries in this queue
-                              </td>
-                            </tr>
-                          ) : (
-                            [...queueEntries]
-                              .sort((a, b) => {
-                                const order = { serving: 0, skipped: 1, waiting: 2, completed: 3 };
-                                return (order[a.status] ?? 4) - (order[b.status] ?? 4);
-                              })
-                              .map(entry => (
-                              <tr key={entry.id}>
-                                <td style={{ fontWeight: 700 }}>{entry.queue_number}</td>
-                                <td>{entry.student_name}</td>
-                                <td style={{ fontSize: '0.8125rem', color: '#6b7280' }}>{entry.student_id}</td>
-                                <td>
-                                  <span className={`badge badge-${entry.status}`}>{entry.status}</span>
-                                </td>
-                                <td>
-                                  {entry.status === 'serving' && (
-                                    <div style={{ display: 'flex', gap: '4px' }}>
-                                      <button
-                                        className="btn btn-success btn-sm"
-                                        onClick={() => handleStatusChange(entry.id, 'complete')}
-                                        disabled={loadingAction === `complete-${entry.id}`}
-                                      >
-                                        {loadingAction === `complete-${entry.id}` ? '...' : '✓ Done'}
-                                      </button>
-                                      <button
-                                        className="btn btn-warning btn-sm"
-                                        onClick={() => handleStatusChange(entry.id, 'skip')}
-                                        disabled={loadingAction === `skip-${entry.id}`}
-                                      >
-                                        {loadingAction === `skip-${entry.id}` ? '...' : 'Skip'}
-                                      </button>
-                                    </div>
-                                  )}
-                                  {entry.status === 'skipped' && (
-                                    <div style={{ display: 'flex', gap: '4px' }}>
-                                      <button
-                                        className="btn btn-success btn-sm"
-                                        onClick={() => handleStatusChange(entry.id, 'complete')}
-                                        disabled={loadingAction === `complete-${entry.id}`}
-                                      >
-                                        {loadingAction === `complete-${entry.id}` ? '...' : '✓ Done'}
-                                      </button>
-                                    </div>
-                                  )}
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="card empty-state">
-                  <div className="empty-state-icon">👈</div>
-                  <p className="empty-state-text">Select a queue to view details</p>
-                </div>
-              )}
-            </div>
-          </div>
           </div>
         )}
 
@@ -1029,22 +1029,7 @@ export default function AdminDashboardPage() {
                 </button>
               )}
             </div>
-            {isTemporaryAdmin && (
-              <div style={{
-                padding: '12px 16px',
-                margin: '0 16px 12px',
-                borderRadius: '8px',
-                background: 'linear-gradient(135deg, #fffbeb, #fef3c7)',
-                border: '1px solid #fbbf24',
-                fontSize: '0.8125rem',
-                color: '#92400e',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                ⚠️ You are using a temporary account. Adding or deleting admins is restricted.
-              </div>
-            )}
+
             <div className="table-wrapper">
               <table className="table">
                 <thead>
