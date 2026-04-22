@@ -4,9 +4,11 @@ Digital enrollment queue management for Holy Angel University — School of Comp
 
 ## Tech Stack
 
-- **Frontend**: Next.js 16 (App Router)
-- **Database**: Supabase (PostgreSQL + Realtime + Auth)
-- **Deployment**: Vercel
+- **Frontend**: Next.js 16 (App Router, React 19)
+- **Database & Auth**: [Supabase](https://supabase.com) (PostgreSQL + Realtime + Row Level Security + Auth)
+- **Deployment**: [Vercel](https://vercel.com)
+- **Bot Protection**: [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) (CAPTCHA alternative on registration & tracking forms)
+- **Geofencing**: GPS-based campus boundary check (latitude, longitude, radius) to restrict registration to on-campus devices
 
 ## Deployment Guide: Vercel + Supabase
 
@@ -16,7 +18,7 @@ Follow these steps to deploy the system to a clean server environment.
 
 1. Go to [supabase.com](https://supabase.com) and create a new project.
 2. Go to **SQL Editor** > **New Query**.
-3. Paste and run the contents of `supabase_setup.sql`, then `migration_add_course.sql`, then `migration_add_offering.sql`.
+3. Paste and run the contents of `supabase_setup.sql`, then `migration_add_course_id.sql`, then `migration_rpc_join_queue.sql`.
 4. Go to **Project Settings** > **API** and copy your credentials:
    - `Project URL`
    - `anon public` key
@@ -36,19 +38,24 @@ Follow these steps to deploy the system to a clean server environment.
    - **Site Key** → used as `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
    - **Secret Key** → used as `TURNSTILE_SECRET_KEY`
 
-### 3. Vercel Deployment
+### 3. Campus Geofence Configuration
+
+The system uses GPS coordinates to restrict student registration to on-campus devices only.
+
+1. Open [Google Maps](https://maps.google.com) and navigate to your campus.
+2. Right-click the center of the campus and copy the coordinates (latitude, longitude).
+3. Decide on a radius in meters that covers the entire campus area.
+4. Set the three environment variables:
+   - `NEXT_PUBLIC_CAMPUS_LAT` — center latitude
+   - `NEXT_PUBLIC_CAMPUS_LNG` — center longitude
+   - `NEXT_PUBLIC_CAMPUS_RADIUS_METERS` — allowed radius in meters
+
+### 4. Vercel Deployment
 
 1. Push your code to a GitHub repository.
 2. Import the project in [vercel.com](https://vercel.com).
 3. Expand the **Environment Variables** section and add **all** of the variables listed in the [Environment Variables](#environment-variables) section below.
 4. Click **Deploy**.
-
-### 4. Authorizing the Registration Computer
-
-Once deployed, the `/register` and `/queue` pages will be locked. To unlock them:
-1. On the physical computer that will be used for registration, open your Vercel URL and navigate to `/admin`.
-2. Log in using the admin account you created in Supabase.
-
 
 ---
 
@@ -76,7 +83,6 @@ The table below lists every environment variable the system requires.
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-
 
 # Cloudflare Turnstile
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAAAA...
@@ -109,11 +115,12 @@ Open [http://localhost:3000](http://localhost:3000)
 | Route | Description |
 |---|---|
 | `/` | Landing page |
-| `/register` | Student registration form to join queue (Kiosk Authorized Only) |
-| `/student/[id]` | Student POV — queue status with 30s auto-refresh |
-| `/queue` | General queue board — all active queues (Kiosk Authorized Only) |
+| `/register` | Student registration form to join queue (Geofence + Turnstile protected) |
+| `/track` | Find your queue — enter Student ID to look up queue status (Turnstile protected) |
+| `/student/[id]` | Student POV — live queue status with auto-refresh |
+| `/queue` | General queue board — all active queues |
 | `/admin` | Admin login |
-| `/admin/dashboard` | Admin dashboard — manage queues, schedules, courses |
+| `/admin/dashboard` | Admin dashboard — manage queues, schedules, courses, admins |
 
 ## Project Structure (MVC)
 
@@ -122,6 +129,6 @@ src/
 ├── models/           # Data access (Supabase queries)
 ├── controllers/      # Business logic
 ├── app/              # Views (pages) + API routes
-├── components/       # Reusable UI components
-└── lib/              # Supabase client setup
+├── components/       # Reusable UI components (Navbar, Turnstile, InteractiveParticles)
+└── lib/              # Supabase clients, geofence, turnstile verification, validators
 ```
