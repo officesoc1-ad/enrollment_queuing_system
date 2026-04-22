@@ -55,6 +55,40 @@ const QueueEntry = {
     return data;
   },
 
+  async moveToBottom(id) {
+    // Get the entry to know its group
+    const { data: entry, error: fetchError } = await supabase
+      .from('queue_entries')
+      .select('schedule_id, course_id, year_level, enrollment_type')
+      .eq('id', id)
+      .single();
+    if (fetchError) throw fetchError;
+
+    // Get the current max queue_number in this group
+    const { data: maxRow, error: maxError } = await supabase
+      .from('queue_entries')
+      .select('queue_number')
+      .eq('schedule_id', entry.schedule_id)
+      .eq('course_id', entry.course_id)
+      .eq('year_level', entry.year_level)
+      .eq('enrollment_type', entry.enrollment_type)
+      .order('queue_number', { ascending: false })
+      .limit(1)
+      .single();
+    if (maxError) throw maxError;
+
+    const newNumber = (maxRow?.queue_number || 0) + 1;
+
+    const { data: updated, error: updateError } = await getServiceSupabase()
+      .from('queue_entries')
+      .update({ queue_number: newNumber })
+      .eq('id', id)
+      .select()
+      .single();
+    if (updateError) throw updateError;
+    return updated;
+  },
+
   async getNextWaiting(schedule_id, course_id, year_level, enrollment_type) {
     const { data, error } = await supabase
       .from('queue_entries')
@@ -130,7 +164,7 @@ const QueueEntry = {
       .from('queue_entries')
       .select('*')
       .eq('student_id', student_id)
-      .in('status', ['waiting', 'serving'])
+      .in('status', ['waiting', 'serving', 'skipped'])
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();

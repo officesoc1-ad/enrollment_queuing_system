@@ -53,6 +53,8 @@ const queueController = {
 
   async skipCurrent(entryId) {
     const updated = await QueueEntry.updateStatus(entryId, 'skipped');
+    // Move skipped student to the bottom of the queue (new highest queue_number)
+    await QueueEntry.moveToBottom(entryId);
     return updated;
   },
 

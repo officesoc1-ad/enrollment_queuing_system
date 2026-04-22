@@ -280,12 +280,22 @@ export default function AdminDashboardPage() {
     const newStatus = action === 'complete' ? 'completed' : 'skipped';
     setQueueEntries(prev => prev.map(e => e.id === entryId ? { ...e, status: newStatus } : e));
     if (selectedQueue) {
+      const prevEntry = queueEntries.find(e => e.id === entryId);
+      const wasServing = prevEntry?.status === 'serving';
+      const wasSkipped = prevEntry?.status === 'skipped';
       const updateData = (q) => {
         if (q.id === selectedQueue.id) {
-          return {
-            ...q,
-            counts: { ...q.counts, serving: Math.max(0, (q.counts?.serving || 0) - 1), completed: action === 'complete' ? (q.counts?.completed || 0) + 1 : (q.counts?.completed || 0) }
-          };
+          const counts = { ...q.counts };
+          if (action === 'complete') {
+            counts.completed = (counts.completed || 0) + 1;
+            if (wasServing) counts.serving = Math.max(0, (counts.serving || 0) - 1);
+            if (wasSkipped) counts.skipped = Math.max(0, (counts.skipped || 0) - 1);
+          } else {
+            // skip — stays visible in serving section, just increment skipped
+            counts.skipped = (counts.skipped || 0) + 1;
+            if (wasServing) counts.serving = Math.max(0, (counts.serving || 0) - 1);
+          }
+          return { ...q, counts };
         }
         return q;
       };
@@ -765,7 +775,7 @@ export default function AdminDashboardPage() {
                           ) : (
                             [...queueEntries]
                               .sort((a, b) => {
-                                const order = { serving: 0, waiting: 1, skipped: 2, completed: 3 };
+                                const order = { serving: 0, skipped: 1, waiting: 2, completed: 3 };
                                 return (order[a.status] ?? 4) - (order[b.status] ?? 4);
                               })
                               .map(entry => (
@@ -792,6 +802,17 @@ export default function AdminDashboardPage() {
                                         disabled={loadingAction === `skip-${entry.id}`}
                                       >
                                         {loadingAction === `skip-${entry.id}` ? '...' : 'Skip'}
+                                      </button>
+                                    </div>
+                                  )}
+                                  {entry.status === 'skipped' && (
+                                    <div style={{ display: 'flex', gap: '4px' }}>
+                                      <button
+                                        className="btn btn-success btn-sm"
+                                        onClick={() => handleStatusChange(entry.id, 'complete')}
+                                        disabled={loadingAction === `complete-${entry.id}`}
+                                      >
+                                        {loadingAction === `complete-${entry.id}` ? '...' : '✓ Done'}
                                       </button>
                                     </div>
                                   )}
