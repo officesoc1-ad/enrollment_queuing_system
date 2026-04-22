@@ -775,8 +775,9 @@ export default function AdminDashboardPage() {
                           ) : (
                             [...queueEntries]
                               .sort((a, b) => {
-                                const order = { serving: 0, skipped: 1, waiting: 2, completed: 3 };
-                                return (order[a.status] ?? 4) - (order[b.status] ?? 4);
+                                const order = { serving: 0, skipped: 0, waiting: 1, completed: 2 };
+                                const diff = (order[a.status] ?? 4) - (order[b.status] ?? 4);
+                                return diff !== 0 ? diff : a.queue_number - b.queue_number;
                               })
                               .map(entry => (
                               <tr key={entry.id}>
