@@ -531,6 +531,59 @@ a:hover {
   .track-title-icon {
     height: 30px;
   }
+
+  /* Tabs - scroll horizontally on small screens */
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tab {
+    white-space: nowrap;
+    flex: 0 0 auto;
+    min-width: max-content;
+    padding: 10px 12px;
+    font-size: 0.8125rem;
+  }
+
+  /* Table mobile: smaller padding, smaller font */
+  .table th,
+  .table td {
+    padding: 8px 10px;
+    font-size: 0.8125rem;
+  }
+
+  .table th {
+    font-size: 0.6875rem;
+  }
+
+  /* Cards: less padding on mobile */
+  .card {
+    padding: var(--space-md);
+  }
+
+  /* Stat cards */
+  .stat-value {
+    font-size: 2rem;
+  }
+
+  /* Queue number display */
+  .queue-number-big {
+    font-size: 4rem;
+  }
+
+  .queue-number-display {
+    padding: var(--space-lg);
+  }
+
+  /* Modal */
+  .modal {
+    margin: var(--space-sm);
+    max-height: 85vh;
+  }
 }
 
 /* Stat cards */

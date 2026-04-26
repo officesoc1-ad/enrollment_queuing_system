@@ -4,13 +4,13 @@ import InteractiveParticles from '@/components/InteractiveParticles';
 export default async function HomePage() {
   return (
     <>
-      <section className="page-header" style={{ padding: '80px 0', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+      <section className="page-header" style={{ paddingTop: '80px', paddingBottom: '80px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <InteractiveParticles />
         <div className="container" style={{ position: 'relative', zIndex: 1, pointerEvents: 'none' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
             <img src="/soc2.png" alt="SOC Logo" style={{ height: '120px', width: 'auto' }} />
           </div>
-          <h1 style={{ fontSize: '2.5rem', marginBottom: '8px' }}>
+          <h1 style={{ marginBottom: '8px' }}>
             <span><span className="hau-text">HAU</span> Enrollment Queuing System</span>
           </h1>
           <p style={{ fontSize: '1.125rem', maxWidth: '600px', margin: '0 auto' }}>

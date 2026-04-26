@@ -105,6 +105,14 @@ export default function StudentPOVPage() {
 
   return (
     <>
+      <style>{`
+        @media (max-width: 768px) {
+          .student-details-grid { grid-template-columns: 1fr !important; }
+          .student-actions { flex-direction: column !important; }
+          .student-actions a { width: 100% !important; justify-content: center !important; }
+          .student-refresh-bar { flex-direction: column !important; align-items: flex-start !important; gap: 4px !important; }
+        }
+      `}</style>
       <section className="page-header">
         <div className="container">
           <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -119,7 +127,7 @@ export default function StudentPOVPage() {
       <div className="container" style={{ maxWidth: '600px' }}>
         {/* Auto-refresh notice */}
         {entry.status === 'waiting' && (
-          <div style={{
+          <div className="student-refresh-bar" style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -129,7 +137,9 @@ export default function StudentPOVPage() {
             background: '#f0f9ff',
             border: '1px solid #bae6fd',
             fontSize: '0.8125rem',
-            color: '#0369a1'
+            color: '#0369a1',
+            flexWrap: 'wrap',
+            gap: '4px'
           }}>
             <span>🔄 Auto-refreshes every 60 seconds{document.hidden ? ' (paused)' : ''}</span>
             <span style={{ color: '#6b7280' }}>Last: {formatLastUpdated()}</span>
@@ -220,7 +230,7 @@ export default function StudentPOVPage() {
         {/* Details */}
         <div className="card">
           <h3 className="card-title" style={{ marginBottom: '16px' }}>Details</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.9375rem' }}>
+          <div className="student-details-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.9375rem' }}>
             <div>
               <span style={{ color: '#6b7280', fontWeight: 600, fontSize: '0.8125rem' }}>Student ID</span>
               <p style={{ fontWeight: 600 }}>{entry.student_id}</p>
@@ -249,7 +259,7 @@ export default function StudentPOVPage() {
         </div>
 
         {/* Navigation Actions */}
-        <div style={{ display: 'flex', gap: '16px', marginTop: '32px', justifyContent: 'center' }}>
+        <div className="student-actions" style={{ display: 'flex', gap: '16px', marginTop: '32px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             🏠 Back to Home
           </Link>

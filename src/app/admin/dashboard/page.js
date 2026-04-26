@@ -631,21 +631,62 @@ export default function AdminDashboardPage() {
           {toast.type === 'error' ? '❌' : '✅'} {toast.message}
         </div>
       )}
-      <style>{`@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`}</style>
+      <style>{`@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @media (max-width: 768px) {
+          /* Top bar */
+          .admin-topbar { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; padding: 12px 16px !important; }
+          .admin-topbar-actions { justify-content: flex-start !important; flex-wrap: wrap !important; gap: 8px !important; }
+          .admin-topbar h1 { font-size: 1.1rem !important; }
+          .admin-topbar-email { font-size: 0.8rem !important; display: block !important; word-break: break-all !important; margin-bottom: 4px !important; }
+
+          /* Stat summary: 2x2 grid */
+          .admin-stat-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+          /* Queue detail card-header: stack title + controls */
+          .admin-queue-header { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+          .admin-queue-controls { width: 100% !important; }
+          .admin-queue-controls button { flex: 1 !important; }
+
+          /* Mini-stats: 3-column grid instead of flex */
+          .admin-queue-ministats { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; }
+          .admin-queue-ministats > div { flex: none !important; min-width: 0 !important; }
+          .admin-queue-ministats .stat-value { font-size: 1.25rem !important; }
+          .admin-queue-ministats .stat-label { font-size: 0.6rem !important; }
+
+          /* Queue list items: prevent badge from being clipped */
+          .admin-queue-item { gap: 8px !important; }
+          .admin-queue-item-info { min-width: 0 !important; flex: 1 !important; }
+          .admin-queue-item-info > div { overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+          .admin-queue-item-badge { flex-shrink: 0 !important; }
+
+          /* Table: ensure horizontal scroll works */
+          .admin-queue-table-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; margin: 0 -16px !important; padding: 0 16px !important; }
+          .admin-queue-table-wrap .table { min-width: 480px !important; }
+
+          /* Action buttons in table: compact */
+          .admin-entry-actions { flex-wrap: nowrap !important; }
+          .admin-entry-actions .btn { padding: 4px 8px !important; font-size: 0.75rem !important; }
+
+          /* Cards: prevent overflow */
+          .card { overflow: hidden !important; }
+        }
+      `}</style>
       {/* Top bar */}
-      <div style={{
+      <div className="admin-topbar" style={{
         background: 'white',
         borderBottom: '1px solid #e5e7eb',
         padding: '12px 24px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '8px'
       }}>
         <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary-800)' }}>
           ⚙️ Admin Dashboard
         </h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+        <div className="admin-topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <span className="admin-topbar-email" style={{ fontSize: '0.875rem', color: '#6b7280' }}>
             {session?.user?.email}
             {isTemporaryAdmin && (
               <span style={{
@@ -672,7 +713,7 @@ export default function AdminDashboardPage() {
 
       <div className="container" style={{ padding: '24px 16px' }}>
         {/* Stats */}
-        <div className="grid grid-4" style={{ marginBottom: '24px' }}>
+        <div className="grid grid-4 admin-stat-grid" style={{ marginBottom: '24px' }}>
           <div className="card stat-card">
             <div className="stat-value">{totalQueues}</div>
             <div className="stat-label">Total Queues</div>
@@ -699,7 +740,7 @@ export default function AdminDashboardPage() {
               className={`tab ${activeTab === tab ? 'active' : ''}`}
               onClick={() => setActiveTab(tab)}
             >
-              {tab === 'queues' ? '📋 Queue Management' : tab === 'schedules' ? '📅 Schedules' : tab === 'courses' ? '📚 Courses' : '👥 Admins'}
+              {tab === 'queues' ? '📋 Queues' : tab === 'schedules' ? '📅 Schedules' : tab === 'courses' ? '📚 Courses' : '👥 Admins'}
             </button>
           ))}
         </div>
@@ -727,6 +768,7 @@ export default function AdminDashboardPage() {
                         <div
                           key={q.id}
                           onClick={() => { setSelectedQueue(q); fetchQueueEntries(q); }}
+                          className="admin-queue-item"
                           style={{
                             padding: '12px 16px',
                             borderBottom: '1px solid #f3f4f6',
@@ -734,12 +776,13 @@ export default function AdminDashboardPage() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
+                            gap: '12px',
                             background: selectedQueue?.id === q.id ? 'var(--primary-50)' : 'transparent',
                             borderLeft: selectedQueue?.id === q.id ? '3px solid var(--gold-500)' : '3px solid transparent',
                             transition: 'all 150ms ease'
                           }}
                         >
-                          <div>
+                          <div className="admin-queue-item-info">
                             <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>
                               {q.courses?.code} — {yearSuffix(q.year_level)} Year
                             </div>
@@ -747,7 +790,7 @@ export default function AdminDashboardPage() {
                               {typeLabel(q.enrollment_type)} · Serving #{q.current_serving || 0}
                             </div>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div className="admin-queue-item-badge" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span className={`badge ${q.counts?.waiting ? 'badge-waiting' : 'badge-inactive'}`}>
                               {q.counts?.waiting || 0} waiting
                             </span>
@@ -763,11 +806,11 @@ export default function AdminDashboardPage() {
               <div>
                 {selectedQueue ? (
                   <div className="card">
-                    <div className="card-header">
+                    <div className="card-header admin-queue-header">
                       <h3 className="card-title">
                         {selectedQueue.courses?.code} — {yearSuffix(selectedQueue.year_level)} Year
                       </h3>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div className="admin-queue-controls" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <select
                           id="batch-size-select"
                           value={batchSize}
@@ -801,7 +844,7 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    <div style={{ marginBottom: '16px', display: 'flex', gap: '12px' }}>
+                    <div className="admin-queue-ministats" style={{ marginBottom: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                       <div className="stat-card card" style={{ flex: 1, padding: '12px' }}>
                         <div className="stat-value" style={{ fontSize: '1.75rem', color: '#6366f1' }}>
                           {selectedQueue.current_serving ? `#${selectedQueue.current_serving}` : '—'}
@@ -823,7 +866,7 @@ export default function AdminDashboardPage() {
                     </div>
 
                     {/* Queue entries table */}
-                    <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                    <div className="admin-queue-table-wrap" style={{ maxHeight: '400px', overflowY: 'auto', overflowX: 'auto' }}>
                       <div className="table-wrapper">
                         <table className="table">
                           <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
@@ -858,7 +901,7 @@ export default function AdminDashboardPage() {
                                     </td>
                                     <td>
                                       {entry.status === 'serving' && (
-                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                        <div className="admin-entry-actions" style={{ display: 'flex', gap: '4px' }}>
                                           <button
                                             className="btn btn-success btn-sm"
                                             onClick={() => handleStatusChange(entry.id, 'complete')}
@@ -876,7 +919,7 @@ export default function AdminDashboardPage() {
                                         </div>
                                       )}
                                       {entry.status === 'skipped' && (
-                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                        <div className="admin-entry-actions" style={{ display: 'flex', gap: '4px' }}>
                                           <button
                                             className="btn btn-success btn-sm"
                                             onClick={() => handleStatusChange(entry.id, 'complete')}

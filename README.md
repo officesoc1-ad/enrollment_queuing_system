@@ -1,134 +1,71 @@
-# HAU Enrollment Queuing System
+# Enrollment Queuing System
 
-Digital enrollment queue management for Holy Angel University — School of Computing.
+## Project Overview
+The Enrollment Queuing System is a digital queue management application designed to streamline student registration and line management during highly active enrollment periods. By digitizing the traditional physical queue, it ensures a more organized, transparent, and fair process for both students waiting in line and the administrative staff managing the service windows.
 
 ## Tech Stack
+- **Framework:** Next.js 16 (App Router)
+- **UI Library:** React 19
+- **Backend & Database:** Supabase (PostgreSQL, Authentication, Realtime WebSockets)
+- **Data Validation:** Zod
+- **Anti-Bot Protection:** Cloudflare Turnstile
 
-- **Frontend**: Next.js 16 (App Router, React 19)
-- **Database & Auth**: [Supabase](https://supabase.com) (PostgreSQL + Realtime + Row Level Security + Auth)
-- **Deployment**: [Vercel](https://vercel.com)
-- **Bot Protection**: [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) (CAPTCHA alternative on registration & tracking forms)
-- **Geofencing**: GPS-based campus boundary check (latitude, longitude, radius) to restrict registration to on-campus devices
+## Features
+- **Location-Based Registration (Geofencing):** Enforces a strict GPS boundary check, ensuring students are authorized and physically on-campus before joining the queue.
+- **Bot & Spam Prevention:** Incorporates Cloudflare Turnstile challenges to prevent automated scripts from overwhelming the registration endpoints.
+- **Real-Time Queue Tracking:** Leverages Supabase Realtime to broadcast live status updates to student devices, dynamically updating their wait position and currently serving numbers.
+- **Self-Service Queue Lookup:** Provides a recovery mechanism allowing students to retrieve active queue metrics just by entering their Student ID.
+- **Comprehensive Admin Dashboard:** Armors system administrators with a unified control panel to construct academic schedules, generate service queues, process students (call next, skip, complete), and manage staff access.
 
-## Deployment Guide: Vercel + Supabase
+## Configuration
+This project is configured dynamically via environment variables. For development environments, defining these in a `.env.local` file at the root directory is mandatory.
 
-Follow these steps to deploy the system to a clean server environment.
+### Database & Authentication (Supabase)
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase project API URL.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Client-safe anonymous key.
+- `SUPABASE_SERVICE_ROLE_KEY` — Privileged backend key (Server-side ONLY).
 
-### 1. Supabase Setup (Database & Auth)
+### Security (Cloudflare Turnstile)
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` — Public site key for widget rendering.
+- `TURNSTILE_SECRET_KEY` — Private key for server-side token validation.
 
-1. Go to [supabase.com](https://supabase.com) and create a new project.
-2. Go to **SQL Editor** > **New Query**.
-3. Paste and run the contents of `supabase_setup.sql`, then `migration_add_course_id.sql`, then `migration_rpc_join_queue.sql`.
-4. Go to **Project Settings** > **API** and copy your credentials:
-   - `Project URL`
-   - `anon public` key
-   - `service_role` key
-5. Create an admin user:
-   - Go to **Authentication** > **Users** > **Add User** > **Create new user**.
-   - Enter an email and password (this will be used to log into the admin dashboard).
+### Geofencing (Location Services)
+- `NEXT_PUBLIC_CAMPUS_LAT` — Center latitude of the target location.
+- `NEXT_PUBLIC_CAMPUS_LNG` — Center longitude of the target location.
+- `NEXT_PUBLIC_CAMPUS_RADIUS_METERS` — Permitted radius distance in meters for successful registration.
 
-### 2. Cloudflare Turnstile Setup (Bot Protection)
+## Installation & Setup
 
-1. Go to the [Cloudflare Dashboard](https://dash.cloudflare.com) and sign in (or create a free account).
-2. Navigate to **Turnstile** in the left sidebar.
-3. Click **Add Site**.
-4. Enter a site name (e.g., "HAU Enrollment") and your deployment domain.
-5. Choose the widget type (Managed is recommended) and click **Create**.
-6. Copy the two keys:
-   - **Site Key** → used as `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
-   - **Secret Key** → used as `TURNSTILE_SECRET_KEY`
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/CSiron21/enrollment_queuing_system.git
+   cd enrollment_queuing_system
+   ```
 
-### 3. Campus Geofence Configuration
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-The system uses GPS coordinates to restrict student registration to on-campus devices only.
+3. **Establish Environment Configuration:**
+   Create a `.env.local` file at the root of the project and populate it with the keys outlined in the **Configuration** section.
 
-1. Open [Google Maps](https://maps.google.com) and navigate to your campus.
-2. Right-click the center of the campus and copy the coordinates (latitude, longitude).
-3. Decide on a radius in meters that covers the entire campus area.
-4. Set the three environment variables:
-   - `NEXT_PUBLIC_CAMPUS_LAT` — center latitude
-   - `NEXT_PUBLIC_CAMPUS_LNG` — center longitude
-   - `NEXT_PUBLIC_CAMPUS_RADIUS_METERS` — allowed radius in meters
+4. **Launch the Development Server:**
+   ```bash
+   npm run dev
+   ```
 
-### 4. Vercel Deployment
+5. **Access the application:**
+   The development frontend server will be accessible at [http://localhost:3000](http://localhost:3000).
 
-1. Push your code to a GitHub repository.
-2. Import the project in [vercel.com](https://vercel.com).
-3. Expand the **Environment Variables** section and add **all** of the variables listed in the [Environment Variables](#environment-variables) section below.
-4. Click **Deploy**.
+## Project Structure
+The architectural pattern follows an MVC-inspired approach nested within a Next.js environment. All primary source logic revolves around the `src/` directory.
 
----
-
-## Environment Variables
-
-The table below lists every environment variable the system requires.
-
-| Variable | Public? | Description | How to Obtain |
-|---|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project REST URL | Supabase → **Project Settings** → **API** → *Project URL* |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous (public) API key | Supabase → **Project Settings** → **API** → *anon public* key |
-| `SUPABASE_SERVICE_ROLE_KEY` | **No** | Supabase service-role key (full DB access, server-only) | Supabase → **Project Settings** → **API** → *service_role* key |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Yes | Cloudflare Turnstile widget site key | Cloudflare Dashboard → **Turnstile** → your site → *Site Key* |
-| `TURNSTILE_SECRET_KEY` | **No** | Cloudflare Turnstile server-side secret key | Cloudflare Dashboard → **Turnstile** → your site → *Secret Key* |
-| `NEXT_PUBLIC_CAMPUS_LAT` | Yes | Campus center latitude for GPS geofence (default: `15.132319684174114`) | Use Google Maps: right-click the campus center → copy latitude |
-| `NEXT_PUBLIC_CAMPUS_LNG` | Yes | Campus center longitude for GPS geofence (default: `120.58956372807982`) | Use Google Maps: right-click the campus center → copy longitude |
-| `NEXT_PUBLIC_CAMPUS_RADIUS_METERS` | Yes | Allowed radius in meters around the campus center (default: `200`) | Set based on your campus size |
-
-> **Note:** Variables prefixed with `NEXT_PUBLIC_` are exposed to the browser. All others are server-only and must be kept secret.
-
-### `.env.local` Example
-
-```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-
-# Cloudflare Turnstile
-NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAAAA...
-TURNSTILE_SECRET_KEY=0x4AAAAAAA...
-
-# Campus Geofence (optional — defaults shown)
-NEXT_PUBLIC_CAMPUS_LAT=15.132319684174114
-NEXT_PUBLIC_CAMPUS_LNG=120.58956372807982
-NEXT_PUBLIC_CAMPUS_RADIUS_METERS=200
-```
-
-## Local Development
-
-```bash
-# 1. Create a .env.local file and fill in all variables
-#    (see the Environment Variables section above)
-cp .env.local.example .env.local
-
-# 2. Install dependencies
-npm install
-
-# 3. Run dev server
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000)
-
-## Pages
-
-| Route | Description |
-|---|---|
-| `/` | Landing page |
-| `/register` | Student registration form to join queue (Geofence + Turnstile protected) |
-| `/track` | Find your queue — enter Student ID to look up queue status (Turnstile protected) |
-| `/student/[id]` | Student POV — live queue status with auto-refresh |
-| `/queue` | General queue board — all active queues |
-| `/admin` | Admin login |
-| `/admin/dashboard` | Admin dashboard — manage queues, schedules, courses, admins |
-
-## Project Structure (MVC)
-
-```
+```text
 src/
-├── models/           # Data access (Supabase queries)
-├── controllers/      # Business logic
-├── app/              # Views (pages) + API routes
-├── components/       # Reusable UI components (Navbar, Turnstile, InteractiveParticles)
-└── lib/              # Supabase clients, geofence, turnstile verification, validators
+├── app/              # Next.js Application Router (Pages, Layouts, API endpoints)
+├── components/       # Presentational & Reusable UI elements (Turnstile, Navbar)
+├── controllers/      # Route controllers housing primary business constraints
+├── lib/              # Ecosystem utilities (Supabase Initialization, Math helpers)
+└── models/           # Data operational layer encapsulating Supabase queries
 ```
