@@ -54,6 +54,14 @@ const Schedule = {
     }
   },
 
+  async deleteAll() {
+    const { error } = await getServiceSupabase()
+      .from('enrollment_schedules')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000');
+    if (error) throw error;
+  },
+
   async getByDateAndType(schedule_date, enrollment_type) {
     const { data, error } = await supabase
       .from('enrollment_schedules')

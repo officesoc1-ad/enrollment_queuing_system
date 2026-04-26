@@ -410,6 +410,23 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleDeleteAllSchedules = async () => {
+    if (!confirm('Delete ALL schedules? This will also remove all associated queue entries. This action cannot be undone.')) return;
+    setLoadingAction('delete-all-schedules');
+    try {
+      const res = await authFetch('/api/schedules', { method: 'DELETE' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      await fetchAll();
+      setSelectedQueue(null);
+      setQueueEntries([]);
+      showToast('All schedules deleted');
+    } catch (err) {
+      showToast(err.message || 'Failed to delete all schedules', 'error');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
   const handleSaveCourse = async (e) => {
     e.preventDefault();
     try {
@@ -954,16 +971,27 @@ export default function AdminDashboardPage() {
           <div className="card">
             <div className="card-header">
               <h3 className="card-title">Enrollment Schedules</h3>
-              <button className="btn btn-primary" onClick={() => {
-                setEditingSchedule(null);
-                setScheduleForm({
-                  course_id: '', enrollment_type: 'block_section', year_level: '1',
-                  schedule_date: '', start_time: '', end_time: ''
-                });
-                setShowScheduleModal(true);
-              }}>
-                + Add Schedule
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {schedules.length > 0 && (
+                  <button
+                    className="btn btn-danger"
+                    onClick={handleDeleteAllSchedules}
+                    disabled={loadingAction === 'delete-all-schedules'}
+                  >
+                    {loadingAction === 'delete-all-schedules' ? 'Deleting...' : '🗑 Delete All'}
+                  </button>
+                )}
+                <button className="btn btn-primary" onClick={() => {
+                  setEditingSchedule(null);
+                  setScheduleForm({
+                    course_id: '', enrollment_type: 'block_section', year_level: '1',
+                    schedule_date: '', start_time: '', end_time: ''
+                  });
+                  setShowScheduleModal(true);
+                }}>
+                  + Add Schedule
+                </button>
+              </div>
             </div>
             <div className="table-wrapper">
               <table className="table">

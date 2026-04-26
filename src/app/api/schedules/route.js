@@ -37,3 +37,17 @@ export async function POST(request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+// DELETE /api/schedules — Delete all schedules (admin only)
+export async function DELETE(request) {
+  try {
+    await verifyAdmin(request);
+    await scheduleController.deleteAllSchedules();
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error.message.startsWith('Unauthorized')) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

@@ -20,6 +20,10 @@ const scheduleController = {
     return await Schedule.delete(id);
   },
 
+  async deleteAllSchedules() {
+    return await Schedule.deleteAll();
+  },
+
   async getAllSchedules() {
     return await Schedule.getAll();
   },
