@@ -1,0 +1,419 @@
+/* ============================
+   Queue Board — Matrix Dashboard
+   Dark / High-Contrast TV Theme
+   ============================ */
+
+.qb {
+  --qb-bg: #0b0f19;
+  --qb-surface: #141a2a;
+  --qb-surface-hover: #1c2438;
+  --qb-border: #1e293b;
+  --qb-border-light: rgba(255, 255, 255, 0.06);
+
+  --qb-text-primary: #f1f5f9;
+  --qb-text-secondary: #94a3b8;
+  --qb-text-muted: #64748b;
+
+  --qb-accent: #f59e0b;
+  --qb-accent-glow: rgba(245, 158, 11, 0.25);
+  --qb-serving-bg: rgba(245, 158, 11, 0.10);
+  --qb-serving-border: rgba(245, 158, 11, 0.30);
+
+  --qb-waiting: #3b82f6;
+  --qb-done: #22c55e;
+  --qb-empty: #475569;
+
+  --qb-header-bg: linear-gradient(135deg, #1e1030 0%, #0f172a 50%, #0c1220 100%);
+
+  min-height: 100vh;
+  background: var(--qb-bg);
+  color: var(--qb-text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  overflow-x: hidden;
+}
+
+/* ---- Top Banner ---- */
+.qb-header {
+  background: var(--qb-header-bg);
+  border-bottom: 1px solid var(--qb-border);
+  padding: 28px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle decorative glow behind the header */
+.qb-header::before {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: 10%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(167, 48, 22, 0.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.qb-header::after {
+  content: '';
+  position: absolute;
+  bottom: -60%;
+  right: 10%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.qb-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.qb-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--qb-text-secondary);
+  transition: all 0.2s ease;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.qb-back-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--qb-text-primary);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.qb-logo {
+  height: 48px;
+  width: auto;
+  filter: brightness(1.1);
+}
+
+.qb-header-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--qb-text-primary);
+  line-height: 1.2;
+}
+
+.qb-header-title .qb-gold {
+  color: var(--qb-accent);
+}
+
+.qb-header-subtitle {
+  font-size: 0.8125rem;
+  color: var(--qb-text-muted);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.qb-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.qb-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.30);
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #f87171;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.qb-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: qb-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes qb-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { opacity: 0.7; transform: scale(1.3); box-shadow: 0 0 8px 2px rgba(239, 68, 68, 0.2); }
+}
+
+.qb-clock {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--qb-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Main Content ---- */
+.qb-body {
+  padding: 24px 32px 40px;
+}
+
+/* ---- Course Section ---- */
+.qb-course-section {
+  margin-bottom: 28px;
+}
+
+.qb-course-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--qb-border);
+}
+
+.qb-course-code {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--qb-accent);
+  letter-spacing: 0.02em;
+}
+
+.qb-course-name {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--qb-text-muted);
+}
+
+/* ---- Matrix Table ---- */
+.qb-matrix {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 6px;
+}
+
+.qb-matrix th {
+  padding: 8px 12px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--qb-text-muted);
+  text-align: center;
+  background: transparent;
+}
+
+.qb-matrix th:first-child {
+  text-align: left;
+  min-width: 100px;
+}
+
+.qb-matrix td {
+  padding: 0;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.qb-matrix td:first-child {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--qb-text-secondary);
+  white-space: nowrap;
+}
+
+/* ---- Individual Cell (each queue) ---- */
+.qb-cell {
+  background: var(--qb-surface);
+  border: 1px solid var(--qb-border);
+  border-radius: 10px;
+  padding: 14px 10px;
+  min-width: 100px;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.qb-cell:hover {
+  background: var(--qb-surface-hover);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Active / serving cell */
+.qb-cell.qb-cell--active {
+  background: var(--qb-serving-bg);
+  border-color: var(--qb-serving-border);
+  box-shadow: 0 0 20px var(--qb-accent-glow), inset 0 0 20px rgba(245, 158, 11, 0.04);
+}
+
+.qb-cell--active .qb-cell-number {
+  color: var(--qb-accent);
+  text-shadow: 0 0 16px var(--qb-accent-glow);
+}
+
+/* Empty cell (no queue or not serving) */
+.qb-cell.qb-cell--empty {
+  opacity: 0.4;
+}
+
+.qb-cell-number {
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--qb-text-primary);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 6px;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+.qb-cell-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--qb-text-muted);
+  margin-bottom: 8px;
+}
+
+.qb-cell-stats {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.qb-cell-stat {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.qb-cell-stat .qb-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.qb-dot--waiting { background: var(--qb-waiting); }
+.qb-dot--done { background: var(--qb-done); }
+
+.qb-cell-stat-value--waiting { color: var(--qb-waiting); }
+.qb-cell-stat-value--done { color: var(--qb-done); }
+
+/* ---- Empty State ---- */
+.qb-empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--qb-text-muted);
+}
+
+.qb-empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.qb-empty-state-text {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--qb-text-secondary);
+  margin-bottom: 8px;
+}
+
+.qb-empty-state-sub {
+  font-size: 0.875rem;
+  color: var(--qb-text-muted);
+}
+
+/* ---- Flash animation for newly updated numbers ---- */
+@keyframes qb-flash {
+  0% { background: rgba(245, 158, 11, 0.3); }
+  100% { background: var(--qb-serving-bg); }
+}
+
+.qb-cell--flash {
+  animation: qb-flash 1s ease-out;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 900px) {
+  .qb-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 20px;
+  }
+
+  .qb-body {
+    padding: 16px;
+  }
+
+  .qb-matrix {
+    display: block;
+    border-spacing: 0;
+  }
+
+  .qb-matrix thead {
+    display: none;
+  }
+
+  .qb-matrix tbody,
+  .qb-matrix tr {
+    display: block;
+  }
+
+  .qb-matrix tr {
+    margin-bottom: 8px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 6px;
+    background: var(--qb-surface);
+    border-radius: 12px;
+    padding: 10px;
+    border: 1px solid var(--qb-border);
+  }
+
+  .qb-matrix td:first-child {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--qb-accent);
+    padding: 4px 0 8px;
+    border-bottom: 1px solid var(--qb-border);
+    margin-bottom: 4px;
+  }
+
+  .qb-cell {
+    min-width: unset;
+  }
+}
+
+/* ---- Scrollbar Styling ---- */
+.qb ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.qb ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.qb ::-webkit-scrollbar-thumb {
+  background: var(--qb-border);
+  border-radius: 3px;
+}

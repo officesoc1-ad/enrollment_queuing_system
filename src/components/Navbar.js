@@ -6,8 +6,8 @@ import { usePathname } from 'next/navigation';
 export default function Navbar() {
   const pathname = usePathname();
 
-  // Don't show navbar on admin pages (they have their own layout)
-  if (pathname?.startsWith('/admin/dashboard')) return null;
+  // Don't show navbar on admin dashboard or queue board (they have their own layouts)
+  if (pathname?.startsWith('/admin/dashboard') || pathname === '/queue') return null;
 
   return (
     <nav className="navbar">

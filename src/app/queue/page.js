@@ -1,21 +1,40 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { fetchQueuesDirectly } from '@/lib/supabase-client';
-import InteractiveParticles from '@/components/InteractiveParticles';
+import './queue-board.css';
 
 export default function QueueBoardPage() {
   const [queues, setQueues] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [clock, setClock] = useState('');
   const debounceTimer = useRef(null);
+  const prevServing = useRef({}); // track previous serving numbers for flash animation
+  const [flashCells, setFlashCells] = useState({}); // { queueId: true }
 
-  // Initial load via API (one-time Vercel invocation)
+  // Clock
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      setClock(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Initial load via API
   const fetchQueuesInitial = useCallback(async () => {
     try {
       const res = await fetch('/api/queue');
       const data = await res.json();
       setQueues(data);
+      // Seed prev serving
+      const map = {};
+      data.forEach(q => { map[q.id] = q.current_serving; });
+      prevServing.current = map;
     } catch (err) {
       console.error('Failed to load queues:', err);
     } finally {
@@ -23,10 +42,22 @@ export default function QueueBoardPage() {
     }
   }, []);
 
-  // Realtime refresh — reads directly from Supabase, no Vercel invocation
+  // Realtime refresh — direct Supabase read
   const fetchQueuesRealtime = useCallback(async () => {
     try {
       const data = await fetchQueuesDirectly();
+      // Detect which cells changed serving number
+      const newFlash = {};
+      data.forEach(q => {
+        if (prevServing.current[q.id] !== undefined && prevServing.current[q.id] !== q.current_serving && q.current_serving) {
+          newFlash[q.id] = true;
+        }
+        prevServing.current[q.id] = q.current_serving;
+      });
+      if (Object.keys(newFlash).length > 0) {
+        setFlashCells(newFlash);
+        setTimeout(() => setFlashCells({}), 1200);
+      }
       setQueues(data);
     } catch (err) {
       console.error('Failed to refresh queues from Supabase:', err);
@@ -36,7 +67,6 @@ export default function QueueBoardPage() {
   useEffect(() => {
     fetchQueuesInitial();
 
-    // Real-time subscriptions — debounced, reads directly from Supabase
     const handleRealtimeChange = () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
       debounceTimer.current = setTimeout(fetchQueuesRealtime, 300);
@@ -55,93 +85,154 @@ export default function QueueBoardPage() {
   }, [fetchQueuesInitial, fetchQueuesRealtime]);
 
   const yearSuffix = (y) => ['', '1st', '2nd', '3rd', '4th'][y] || `${y}th`;
-  const typeLabel = (t) => t === 'block_section' ? 'Block Section' : 'Irregular';
+  const typeLabel = (t) => t === 'block_section' ? 'Block' : 'Irreg';
 
-  // Group queues by course
+  // Build the matrix structure:
+  // Group by course, then collect all unique (year_level, enrollment_type) combos as columns
   const grouped = queues.reduce((acc, q) => {
     const courseCode = q.courses?.code || 'Unknown';
-    if (!acc[courseCode]) acc[courseCode] = [];
-    acc[courseCode].push(q);
+    const courseName = q.courses?.name || '';
+    if (!acc[courseCode]) acc[courseCode] = { name: courseName, queues: [] };
+    acc[courseCode].queues.push(q);
     return acc;
   }, {});
 
+  // Collect all unique column keys across all courses
+  const allColumnKeys = new Set();
+  queues.forEach(q => {
+    allColumnKeys.add(`${q.year_level}-${q.enrollment_type}`);
+  });
+
+  // Sort columns: by year_level first, then block before irregular
+  const sortedColumns = [...allColumnKeys].sort((a, b) => {
+    const [ya, ta] = a.split('-');
+    const [yb, tb] = b.split('-');
+    if (ya !== yb) return Number(ya) - Number(yb);
+    return ta === 'block_section' ? -1 : 1;
+  });
+
+  const columnLabels = sortedColumns.map(key => {
+    const [y, t] = key.split('-');
+    return { key, label: `${yearSuffix(Number(y))} Yr`, sub: typeLabel(t) };
+  });
+
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <p>Loading queue board...</p>
+      <div className="qb" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="spinner" style={{ margin: '0 auto 16px', borderTopColor: 'var(--qb-accent)' }}></div>
+          <p style={{ color: 'var(--qb-text-muted)' }}>Loading queue board...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <>
-      <section className="page-header" style={{ textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-        <InteractiveParticles />
-        <div className="container" style={{ position: 'relative', zIndex: 1, pointerEvents: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', margin: 0, paddingBottom: '8px' }}>
-            <img src="/queueboard-icon.svg" alt="Queue Board Icon" style={{ height: '40px', width: 'auto' }} />
-            Queue Board
-          </h1>
-          <p style={{ margin: 0 }}>Live enrollment queue status — all courses</p>
+    <div className="qb">
+      {/* Header */}
+      <header className="qb-header">
+        <div className="qb-header-left">
+          <Link href="/" className="qb-back-btn" title="Back to Home">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </Link>
+          <img src="/soc2.png" alt="SOC Logo" className="qb-logo" />
+          <div>
+            <div className="qb-header-title">
+              <span className="qb-gold">HAU</span> Queue Board
+            </div>
+            <div className="qb-header-subtitle">School of Computing · Enrollment Queue Status</div>
+          </div>
         </div>
-      </section>
+        <div className="qb-header-right">
+          <div className="qb-live-badge">
+            <span className="qb-live-dot"></span>
+            LIVE
+          </div>
+          <div className="qb-clock">{clock}</div>
+        </div>
+      </header>
 
-      <div className="container">
+      {/* Body */}
+      <div className="qb-body">
         {Object.keys(grouped).length === 0 ? (
-          <div className="card empty-state">
-            <div className="empty-state-icon">📭</div>
-            <p className="empty-state-text">No queues at the moment</p>
-            <p style={{ color: '#9ca3af', marginTop: '8px', fontSize: '0.875rem' }}>
-              Queues will appear here once the admin creates enrollment schedules.
-            </p>
+          <div className="qb-empty-state">
+            <div className="qb-empty-state-icon">📭</div>
+            <div className="qb-empty-state-text">No queues at the moment</div>
+            <div className="qb-empty-state-sub">Queues will appear here once enrollment schedules are created.</div>
           </div>
         ) : (
-          Object.entries(grouped).map(([courseCode, courseQueues]) => (
-            <div key={courseCode} style={{ marginBottom: '32px' }}>
-              <h2 style={{ fontSize: '1.375rem', fontWeight: 800, marginBottom: '16px', color: '#111827' }}>
-                {courseCode}
-                <span style={{ fontWeight: 400, color: '#6b7280', fontSize: '1rem', marginLeft: '8px' }}>
-                  {courseQueues[0]?.courses?.name}
-                </span>
-              </h2>
-              <div className="grid grid-4">
-                {courseQueues
-                  .sort((a, b) => a.year_level - b.year_level)
-                  .map(q => (
-                    <div key={q.id} className="card" style={{
-                      borderTop: '4px solid #10b981',
-                      textAlign: 'center'
-                    }}>
-                      <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#374151', marginBottom: '4px' }}>
-                        {yearSuffix(q.year_level)} Year
-                      </h3>
-                      <p style={{ fontSize: '0.8125rem', color: '#9ca3af', marginBottom: '16px' }}>
-                        {typeLabel(q.enrollment_type)}
-                      </p>
+          <table className="qb-matrix">
+            <thead>
+              <tr>
+                <th>Course</th>
+                {columnLabels.map(col => (
+                  <th key={col.key}>
+                    {col.label}
+                    <br />
+                    <span style={{ fontSize: '0.5625rem', fontWeight: 500, opacity: 0.7 }}>{col.sub}</span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(grouped).map(([courseCode, { name, queues: courseQueues }]) => {
+                // Build a lookup map for this course's queues
+                const queueMap = {};
+                courseQueues.forEach(q => {
+                  queueMap[`${q.year_level}-${q.enrollment_type}`] = q;
+                });
 
-                      <div className="stat-value" style={{ fontSize: '3rem', marginBottom: '4px' }}>
-                        {q.current_serving || '—'}
-                      </div>
-                      <div className="stat-label">Now Serving</div>
-
-                      <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '16px', fontSize: '0.8125rem' }}>
-                        <div>
-                          <strong style={{ color: '#3b82f6' }}>{q.counts?.waiting || 0}</strong>
-                          <span style={{ color: '#9ca3af' }}> waiting</span>
-                        </div>
-                        <div>
-                          <strong style={{ color: '#10b981' }}>{q.counts?.completed || 0}</strong>
-                          <span style={{ color: '#9ca3af' }}> done</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          ))
+                return (
+                  <tr key={courseCode}>
+                    <td>
+                      <span style={{ color: 'var(--qb-accent)', fontWeight: 700 }}>{courseCode}</span>
+                      <br />
+                      <span style={{ fontSize: '0.6875rem', color: 'var(--qb-text-muted)', fontWeight: 400 }}>{name}</span>
+                    </td>
+                    {sortedColumns.map(colKey => {
+                      const q = queueMap[colKey];
+                      if (!q) {
+                        return (
+                          <td key={colKey}>
+                            <div className="qb-cell qb-cell--empty">
+                              <div className="qb-cell-number" style={{ color: 'var(--qb-empty)' }}>—</div>
+                              <div className="qb-cell-label">No Queue</div>
+                            </div>
+                          </td>
+                        );
+                      }
+                      const isActive = q.current_serving && q.current_serving > 0;
+                      const isFlashing = flashCells[q.id];
+                      return (
+                        <td key={colKey}>
+                          <div className={`qb-cell ${isActive ? 'qb-cell--active' : ''} ${isFlashing ? 'qb-cell--flash' : ''}`}>
+                            <div className="qb-cell-number">
+                              {q.current_serving || '—'}
+                            </div>
+                            <div className="qb-cell-label">Now Serving</div>
+                            <div className="qb-cell-stats">
+                              <div className="qb-cell-stat">
+                                <span className="qb-dot qb-dot--waiting"></span>
+                                <span className="qb-cell-stat-value--waiting">{q.counts?.waiting || 0}</span>
+                              </div>
+                              <div className="qb-cell-stat">
+                                <span className="qb-dot qb-dot--done"></span>
+                                <span className="qb-cell-stat-value--done">{q.counts?.completed || 0}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
-    </>
+    </div>
   );
 }
